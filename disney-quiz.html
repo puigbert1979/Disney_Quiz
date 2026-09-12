@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏰 Qui és qui? El joc dels personatges Disney</title>
+<style>
+  :root{
+    --pink:#ff5da2;
+    --purple:#7b3ff2;
+    --blue:#2dc4f7;
+    --yellow:#ffd23f;
+    --green:#2ecc71;
+    --red:#ff4d4d;
+    --gold:#ffd700;
+    --ink:#2b1750;
+    --card-bg:#ffffff;
+    --paper:#fff8f0;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Trebuchet MS","Segoe UI Rounded","Comic Sans MS",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 10% 15%, rgba(255,255,255,.35) 0, transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(255,255,255,.3) 0, transparent 40%),
+      linear-gradient(135deg, var(--purple), var(--pink) 45%, var(--blue) 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+  }
+  .stars{ position:fixed; inset:0; pointer-events:none; z-index:0; }
+  .stars span{ position:absolute; font-size:22px; opacity:.55; animation:twinkle 3.2s ease-in-out infinite; }
+  @keyframes twinkle{0%,100%{transform:scale(1) rotate(0deg);opacity:.3}50%{transform:scale(1.3) rotate(15deg);opacity:.8}}
+
+  .wrap{ position:relative; z-index:1; max-width:920px; margin:0 auto; padding:28px 18px 60px; }
+
+  .screen{display:none;}
+  .screen.active{display:block; animation:popIn .45s cubic-bezier(.2,1.4,.4,1);}
+  @keyframes popIn{from{opacity:0; transform:translateY(18px) scale(.97);} to{opacity:1; transform:translateY(0) scale(1);}}
+
+  h1.title{
+    text-align:center; font-size:clamp(28px,5.5vw,46px); color:#fff;
+    text-shadow: 0 3px 0 rgba(0,0,0,.18), 0 0 22px rgba(255,255,255,.35);
+    margin:6px 0 4px; letter-spacing:.5px;
+  }
+  p.subtitle{ text-align:center; color:#fff; font-size:clamp(14px,2.6vw,18px); margin:0 0 26px; opacity:.95; }
+
+  .card{
+    background:var(--paper); border-radius:26px; padding:28px clamp(16px,4vw,36px);
+    box-shadow:0 18px 40px rgba(30,10,60,.35), inset 0 0 0 4px rgba(255,255,255,.6);
+    border:4px dashed rgba(123,63,242,.25);
+  }
+
+  h2.step-title{ margin:0 0 18px; font-size:clamp(20px,3.6vw,28px); color:var(--purple); display:flex; align-items:center; gap:10px; }
+  h2.step-title .badge{
+    background:var(--yellow); color:var(--ink); border-radius:50%; width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center; font-weight:bold;font-size:18px;
+    box-shadow:0 3px 0 rgba(0,0,0,.15); flex-shrink:0;
+  }
+
+  label.field-label{ display:block; font-weight:bold; margin:14px 0 6px; color:var(--purple); }
+
+  input[type=number], input[type=text]{
+    width:100%; padding:12px 14px; border-radius:14px; border:3px solid #e2d4ff;
+    font-size:17px; font-family:inherit; background:#fff; outline:none;
+    transition:border-color .2s, transform .15s;
+  }
+  input[type=number]:focus, input[type=text]:focus{ border-color:var(--pink); transform:scale(1.01); }
+
+  .player-name-row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; background:#fff; padding:8px 12px; border-radius:16px; border:2px solid #f0e6ff; }
+  .player-name-row .avatar-emoji{ font-size:26px; width:38px; text-align:center; }
+
+  button{ font-family:inherit; cursor:pointer; border:none; border-radius:18px; font-weight:bold; letter-spacing:.3px; }
+  .btn-main{
+    display:block; width:100%; margin-top:22px; padding:16px; font-size:19px; color:#fff;
+    background:linear-gradient(135deg, var(--pink), var(--purple));
+    box-shadow:0 8px 0 #5a20b8, 0 14px 24px rgba(0,0,0,.25);
+    transition:transform .12s, box-shadow .12s;
+  }
+  .btn-main:hover{ transform:translateY(-2px); }
+  .btn-main:active{ transform:translateY(4px); box-shadow:0 3px 0 #5a20b8, 0 6px 14px rgba(0,0,0,.2);}
+  .btn-main:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+
+  .btn-secondary{ background:#fff; color:var(--purple); border:3px solid var(--purple); padding:10px 18px; font-size:15px; }
+
+  .movies-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; background:#fff; padding:12px 16px; border-radius:16px; margin-bottom:10px; border:2px solid #f0e6ff; }
+  .movies-row .pname{font-weight:bold; color:var(--purple); font-size:17px;}
+  .movies-row input{width:90px; text-align:center;}
+
+  .scoreboard{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:18px; }
+  .score-pill{
+    background:#fff; border-radius:999px; padding:8px 16px; font-weight:bold;
+    box-shadow:0 4px 0 rgba(0,0,0,.08); border:3px solid transparent;
+    display:flex; align-items:center; gap:8px; color:var(--ink); font-size:15px;
+  }
+  .score-pill.current{ border-color:var(--gold); background:#fff7d6; transform:scale(1.06); }
+  .score-pill .pts{ background:var(--purple); color:#fff; border-radius:999px; padding:2px 10px; font-size:14px; }
+
+  .round-info{ text-align:center; color:#fff; font-size:16px; margin-bottom:10px; text-shadow:0 2px 4px rgba(0,0,0,.2); }
+
+  .turn-banner{
+    text-align:center; background:linear-gradient(135deg,var(--yellow),#ffb703); color:var(--ink);
+    border-radius:20px; padding:12px; font-size:clamp(17px,3vw,22px); font-weight:bold;
+    margin-bottom:18px; box-shadow:0 6px 0 #d99400; animation:bounceIn .5s;
+  }
+  @keyframes bounceIn{0%{transform:scale(.7);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+
+  .cards-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:8px; }
+  @media (max-width:520px){ .cards-grid{grid-template-columns:1fr;} }
+
+  .char-card{
+    background:var(--card-bg); border-radius:20px; padding:16px 14px; text-align:center;
+    border:4px solid #e2d4ff; cursor:pointer; transition:transform .18s, box-shadow .18s, border-color .18s;
+    box-shadow:0 8px 0 #d9caf7; position:relative;
+  }
+  .char-card:hover{ transform:translateY(-4px) rotate(-1deg); border-color:var(--pink); }
+  .char-card.selected{ border-color:var(--green); background:#eafff2; transform:scale(1.03); }
+  .char-card.princess-card{ background:#ffe3ee; border-color:var(--red); }
+  .char-card.princess-card:hover{ border-color:#c92a2a; }
+  .char-card.princess-card.selected{ border-color:var(--green); background:#eafff2; }
+  .avatar-badge{
+    width:128px; height:128px; margin:0 auto 8px; border-radius:20px;
+    background:radial-gradient(circle at 35% 25%, #fffdf7, #f1e9ff 75%);
+    box-shadow:inset 0 0 0 3px rgba(123,63,242,.15), 0 6px 14px rgba(0,0,0,.15);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .avatar-badge .emoji-face{ font-size:64px; line-height:1; }
+  .char-card .clue{ font-size:13.5px; color:#5a4a7a; line-height:1.35; min-height:52px; }
+
+  .guess-area{ margin-top:18px; display:none; }
+  .guess-area.active{display:block; animation:popIn .3s;}
+  .guess-area .chosen-preview{ text-align:center; font-size:15px; color:var(--purple); margin-bottom:10px; font-weight:bold; }
+  .guess-row{ display:flex; gap:10px; }
+  .guess-row button{ padding:12px 22px; background:linear-gradient(135deg,var(--green),#1fa85c); color:#fff; font-size:16px; box-shadow:0 6px 0 #157a41; }
+  .guess-row button:active{transform:translateY(3px); box-shadow:0 3px 0 #157a41;}
+
+  .feedback-overlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:50; background:rgba(20,5,40,.45); }
+  .feedback-overlay.show{display:flex;}
+  .feedback-box{ background:#fff; border-radius:28px; padding:32px 30px; text-align:center; max-width:340px; box-shadow:0 20px 50px rgba(0,0,0,.4); animation:feedbackPop .45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes feedbackPop{0%{transform:scale(.3) rotate(-8deg);opacity:0;}70%{transform:scale(1.1) rotate(2deg);}100%{transform:scale(1) rotate(0);opacity:1;}}
+  .feedback-box .fb-avatar{ width:140px; height:140px; margin:0 auto 8px; border-radius:20px; background:radial-gradient(circle at 35% 25%, #fffdf7, #f1e9ff 75%); box-shadow:inset 0 0 0 3px rgba(123,63,242,.12); display:flex; align-items:center; justify-content:center; }
+  .feedback-box .fb-avatar .emoji-face{font-size:72px; line-height:1;}
+  .feedback-box .big-emoji{ font-size:44px; display:block; margin-bottom:4px; animation:wiggle .6s ease-in-out infinite; }
+  @keyframes wiggle{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(6deg);}}
+  .feedback-box.wrong .big-emoji{animation:shake .5s;}
+  @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-10px);}40%{transform:translateX(10px);}60%{transform:translateX(-6px);}80%{transform:translateX(6px);}}
+  .feedback-box h3{margin:6px 0; font-size:22px; color:var(--purple);}
+  .feedback-box p{margin:4px 0 18px; color:#555; font-size:15px;}
+  .feedback-box.correct{border:5px solid var(--green);}
+  .feedback-box.wrong{border:5px solid var(--red);}
+
+  .confetti-piece{ position:fixed; top:-20px; font-size:22px; z-index:60; animation:fall linear forwards; pointer-events:none; }
+  @keyframes fall{ to{ transform:translateY(105vh) rotate(360deg); opacity:.9; } }
+
+  .winner-box{ text-align:center; }
+  .winner-box .crown{ font-size:80px; display:block; animation:bob 1.4s ease-in-out infinite; }
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-14px);}}
+  .final-name{ font-size:clamp(26px,5vw,38px); color:var(--purple); margin:8px 0 4px; }
+  .final-ranking{ margin-top:24px; text-align:left; max-width:420px; margin-left:auto; margin-right:auto; }
+  .final-ranking .rank-row{ display:flex; justify-content:space-between; background:#fff; padding:10px 16px; border-radius:14px; margin-bottom:8px; border:2px solid #f0e6ff; font-weight:bold; }
+  .final-ranking .rank-row:first-child{ border-color:var(--gold); background:#fff7d6; }
+
+  .footer-note{ text-align:center; color:#fff; opacity:.85; font-size:12.5px; margin-top:26px; }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="wrap">
+  <h1 class="title">✨ Qui és qui? ✨</h1>
+  <p class="subtitle">El joc dels personatges Disney</p>
+
+  <section class="screen active" id="screen-players">
+    <div class="card">
+      <h2 class="step-title"><span class="badge">1</span> Quants jugadors hi participaran?</h2>
+      <label class="field-label">Nombre de jugadors (2 a 6)</label>
+      <input type="number" id="numPlayers" min="2" max="6" value="2">
+      <div id="nameFields" style="margin-top:16px;"></div>
+      <button class="btn-main" id="btnGoMovies">Següent ➜</button>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-movies">
+    <div class="card">
+      <h2 class="step-title"><span class="badge">2</span> Quantes pel·lícules Disney has vist?</h2>
+      <p style="margin-top:-6px; color:#5a4a7a;">Qui n'hagi vist menys, comença el joc! 🎬</p>
+      <div id="movieFields"></div>
+      <button class="btn-main" id="btnStartGame">Començar el joc! 🚀</button>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-game">
+    <div class="scoreboard" id="scoreboard"></div>
+    <div class="round-info" id="roundInfo"></div>
+    <div class="turn-banner" id="turnBanner"></div>
+    <div class="card">
+      <div class="cards-grid" id="cardsGrid"></div>
+      <div class="guess-area" id="guessArea">
+        <div class="chosen-preview" id="chosenPreview"></div>
+        <div class="guess-row">
+          <input type="text" id="guessInput" placeholder="Escriu el nom del personatge...">
+          <button id="btnSubmitGuess">Comprovar ✔️</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-final">
+    <div class="card winner-box">
+      <span class="crown">👑</span>
+      <p style="margin:0; color:#5a4a7a; font-size:16px;">I el gran expert en Disney és...</p>
+      <h2 class="final-name" id="winnerName"></h2>
+      <div class="final-ranking" id="finalRanking"></div>
+      <button class="btn-main" id="btnRestart">Tornar a jugar 🔁</button>
+    </div>
+  </section>
+
+  <p class="footer-note">Fet amb 💜 per als petits fans de Disney — il·lustracions originals, no oficials</p>
+</div>
+
+<div class="feedback-overlay" id="feedbackOverlay">
+  <div class="feedback-box" id="feedbackBox">
+    <div class="fb-avatar" id="feedbackAvatar"></div>
+    <span class="big-emoji" id="feedbackEmoji"></span>
+    <h3 id="feedbackTitle"></h3>
+    <p id="feedbackText"></p>
+    <button class="btn-secondary" id="btnFeedbackClose">Continuar ➜</button>
+  </div>
+</div>
+
+<script>
+/* ============ DADES DELS PERSONATGES ============ */
+const CHARACTERS = [
+  // ---- PRINCESES ----
+  {name:"Blancaneu", princess:true, emoji:"🍎", clue:"Viu amb set nans a un bosc i va menjar una poma enverinada.", accepted:["blancaneu","blancanieves","snow white"]},
+  {name:"La Ventafocs", princess:true, emoji:"👠", clue:"Va perdre una sabata de vidre a mitjanit en un ball reial.", accepted:["ventafocs","la ventafocs","cenicienta","cinderella"]},
+  {name:"Aurora", princess:true, emoji:"🌹", clue:"Es va punxar el dit amb una filosa i va caure en un son profund.", accepted:["aurora","bella dorment","la bella dorment","sleeping beauty"]},
+  {name:"Ariel", princess:true, emoji:"🧜‍♀️", clue:"És una sireneta que somia viure a terra ferma.", accepted:["ariel"]},
+  {name:"Bella", princess:true, emoji:"🌹", clue:"Estima llegir i s'enamora d'una bèstia amb bon cor.", accepted:["bella","belle"]},
+  {name:"Jasmine", princess:true, emoji:"🧞", clue:"Princesa d'Agrabah que vola en catifa màgica.", accepted:["jasmine","jasmín","yasmin"]},
+  {name:"Pocahontas", princess:true, emoji:"🍃", clue:"Parla amb els esperits de la natura i el vent.", accepted:["pocahontas"]},
+  {name:"Mulan", princess:true, emoji:"🐉", clue:"Es disfressa de soldat per salvar el seu pare.", accepted:["mulan"]},
+  {name:"Tiana", princess:true, emoji:"🐸", clue:"Somia obrir el seu propi restaurant a Nova Orleans.", accepted:["tiana"]},
+  {name:"Rapunzel", princess:true, emoji:"👱‍♀️", clue:"Té els cabells màgics i molt, molt llargs.", accepted:["rapunzel"]},
+  {name:"Mèrida", princess:true, emoji:"🏹", clue:"Escocesa, cabell roig rinxolat i gran arquera.", accepted:["merida","mèrida"]},
+  {name:"Vaiana", princess:true, emoji:"🌊", clue:"Navega pel mar per salvar la seva illa.", accepted:["vaiana","moana"]},
+  {name:"Elsa", princess:true, emoji:"❄️", clue:"Reina del gel que pot congelar tot el que toca.", accepted:["elsa"]},
+  {name:"Anna", princess:true, emoji:"⛄", clue:"Germana valenta que busca la reina del gel a les muntanyes.", accepted:["anna"]},
+
+  // ---- ALTRES PERSONATGES ----
+  {name:"Mickey Mouse", princess:false, emoji:"🐭", clue:"El ratolí més famós del món, sempre somrient.", accepted:["mickey","mickey mouse"]},
+  {name:"Minnie Mouse", princess:false, emoji:"🎀", clue:"Porta sempre un llaç vermell al cap.", accepted:["minnie","minnie mouse"]},
+  {name:"Donald Duck", princess:false, emoji:"🦆", clue:"Un ànec molt geniüt que porta jaqueta blava.", accepted:["donald","ànec donald","pato donald","donald duck"]},
+  {name:"Goofy", princess:false, emoji:"🐶", clue:"Un gos alt i despistat que sempre fa riure.", accepted:["goofy","tribilín"]},
+  {name:"Pluto", princess:false, emoji:"🐕", clue:"El gos fidel de Mickey Mouse.", accepted:["pluto"]},
+  {name:"Simba", princess:false, emoji:"🦁", clue:"Cadell de lleó que serà el rei de la sabana.", accepted:["simba"]},
+  {name:"Woody", princess:false, emoji:"🤠", clue:"Un vaquer de joguina amb barret i xerif estrella.", accepted:["woody"]},
+  {name:"Buzz Lightyear", princess:false, emoji:"🚀", clue:"Astronauta de joguina que creu que pot volar de veritat.", accepted:["buzz","buzz lightyear"]},
+  {name:"Nemo", princess:false, emoji:"🐠", clue:"Un petit peix taronja amb una aleta especial.", accepted:["nemo"]},
+  {name:"Dory", princess:false, emoji:"🐟", clue:"Un peix blau que oblida les coses molt de pressa.", accepted:["dory"]},
+  {name:"Stitch", princess:false, emoji:"👽", clue:"Un extraterrestre blau molt trapella que estima l'ohana.", accepted:["stitch"]},
+  {name:"Aladdin", princess:false, emoji:"🪔", clue:"Troba una llàntia amb un geni dins.", accepted:["aladdin","aladí"]},
+  {name:"Peter Pan", princess:false, emoji:"🧚", clue:"El nen que no vol créixer i vola cap al País de Mai Més.", accepted:["peter pan"]},
+  {name:"Pinotxo", princess:false, emoji:"🪵", clue:"Un nino de fusta que somia ser un nen de veritat.", accepted:["pinotxo","pinocho","pinocchio"]},
+  {name:"Hèrcules", princess:false, emoji:"💪", clue:"Fill de Zeus que ha de convertir-se en un heroi.", accepted:["hercules","hèrcules"]},
+  {name:"Tarzan", princess:false, emoji:"🌴", clue:"Va créixer a la selva criat pels goril·les.", accepted:["tarzan","tarzán"]},
+  {name:"Baloo", princess:false, emoji:"🐻", clue:"Un ós despreocupat que canta sobre les coses més simples de la vida.", accepted:["baloo"]},
+  {name:"Timó", princess:false, emoji:"🦫", clue:"Una suricata bromista, amic inseparable d'un facoquer.", accepted:["timon","timó"]},
+  {name:"Pumbaa", princess:false, emoji:"🐗", clue:"Un facoquer bonàs que estima cantar 'Hakuna Matata'.", accepted:["pumbaa"]},
+  {name:"Olaf", princess:false, emoji:"☃️", clue:"Un ninot de neu que somia amb l'estiu.", accepted:["olaf"]},
+  {name:"Kristoff", princess:false, emoji:"🦌", clue:"Un venedor de gel que viatja amb el seu ren.", accepted:["kristoff"]},
+  {name:"Geni", princess:false, emoji:"🧞‍♂️", clue:"Viu dins una llàntia i concedeix tres desitjos.", accepted:["geni","genio","genie"]},
+  {name:"Sebastià", princess:false, emoji:"🦀", clue:"Un cranc que toca música i vigila una sireneta.", accepted:["sebastian","sebastià"]},
+  {name:"Mufasa", princess:false, emoji:"🦁", clue:"El savi rei lleó que mira el seu regne des del Penyal del Rei.", accepted:["mufasa"]},
+  {name:"Scar", princess:false, emoji:"😼", clue:"El germà gelós que vol el tron de la sabana.", accepted:["scar"]},
+  {name:"Capità Garfi", princess:false, emoji:"🪝", clue:"Un pirata amb un ganxo en comptes de mà, té por dels cocodrils.", accepted:["capita garfi","capità garfi","garfio","captain hook"]},
+  {name:"Winnie the Pooh", princess:false, emoji:"🍯", clue:"Un osset que adora la mel més que res al món.", accepted:["winnie","winnie the pooh","pooh"]},
+  {name:"Tigger", princess:false, emoji:"🐯", clue:"Un tigre que sempre bota amunt i avall.", accepted:["tigger"]},
+  {name:"Dumbo", princess:false, emoji:"🐘", clue:"Un elefantó amb unes orelles tan grans que pot volar-hi.", accepted:["dumbo"]},
+  {name:"Bambi", princess:false, emoji:"🦌", clue:"Un cervatell que aprèn a caminar al bosc amb els seus amics.", accepted:["bambi"]},
+  {name:"Alícia", princess:false, emoji:"🐇", clue:"Cau per un forat de conill i arriba a un país de meravelles.", accepted:["alicia","alícia","alice"]},
+  {name:"Jack Sparrow", princess:false, emoji:"🏴‍☠️", clue:"Un pirata excèntric sempre a la recerca d'un tresor.", accepted:["jack sparrow","capitan jack sparrow"]},
+  {name:"Sully", princess:false, emoji:"🟦", clue:"Un monstre blau i pelut que treballa espantant nens.", accepted:["sully","sulley"]},
+  {name:"Mike Wazowski", princess:false, emoji:"👁️", clue:"Un monstre verd amb un sol ull enorme.", accepted:["mike","mike wazowski"]},
+  {name:"Remy", princess:false, emoji:"🐀", clue:"Una rata que somia ser un gran cuiner a París.", accepted:["remy"]},
+  {name:"WALL-E", princess:false, emoji:"🤖", clue:"Un petit robot que neteja un planeta Terra abandonat.", accepted:["wall-e","walle"]},
+  {name:"Baymax", princess:false, emoji:"🩹", clue:"Un robot inflable blanc que cuida la salut de tothom.", accepted:["baymax"]},
+  {name:"Judy Hopps", princess:false, emoji:"🐰", clue:"Una conilla decidida a ser la primera policia de la ciutat.", accepted:["judy","judy hopps"]},
+  {name:"Nick Wilde", princess:false, emoji:"🦊", clue:"Una guineu murrieta que ajuda a resoldre un misteri a la ciutat.", accepted:["nick","nick wilde"]},
+];
+
+/* ============ ESTAT DEL JOC ============ */
+let state = {
+  players: [],
+  order: [],
+  currentRound: 1,
+  totalRounds: 5,
+  turnIndex: 0,
+  usedCharacters: new Set(),
+  currentOptions: [],
+  selectedOption: null,
+};
+
+/* ============ UTILITATS ============ */
+function normalize(str){
+  return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ");
+}
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function makeStars(){
+  const container = document.getElementById("stars");
+  const icons = ["✨","⭐","🌟","💫"];
+  for(let i=0;i<18;i++){
+    const s = document.createElement("span");
+    s.textContent = icons[Math.floor(Math.random()*icons.length)];
+    s.style.left = Math.random()*100+"%";
+    s.style.top = Math.random()*100+"%";
+    s.style.animationDelay = (Math.random()*3)+"s";
+    container.appendChild(s);
+  }
+}
+makeStars();
+
+/* ============ PAS 1: JUGADORS ============ */
+const numPlayersInput = document.getElementById("numPlayers");
+const nameFields = document.getElementById("nameFields");
+
+function renderNameFields(){
+  const n = Math.max(2, Math.min(6, parseInt(numPlayersInput.value)||2));
+  numPlayersInput.value = n;
+  nameFields.innerHTML = "";
+  const avatars = ["🦄","🐉","🧸","🚀","🎈","🦋"];
+  for(let i=0;i<n;i++){
+    const row = document.createElement("div");
+    row.className = "player-name-row";
+    row.innerHTML = `<span class="avatar-emoji">${avatars[i%avatars.length]}</span>
+      <input type="text" id="pname-${i}" placeholder="Nom del jugador ${i+1}" maxlength="14">`;
+    nameFields.appendChild(row);
+  }
+}
+numPlayersInput.addEventListener("input", renderNameFields);
+renderNameFields();
+
+document.getElementById("btnGoMovies").addEventListener("click", ()=>{
+  const n = parseInt(numPlayersInput.value);
+  state.players = [];
+  for(let i=0;i<n;i++){
+    const val = document.getElementById(`pname-${i}`).value.trim();
+    state.players.push({ name: val || `Jugador ${i+1}`, points:0, movies:0 });
+  }
+  renderMovieFields();
+  showScreen("screen-movies");
+});
+
+/* ============ PAS 2: PEL·LICULES ============ */
+const movieFields = document.getElementById("movieFields");
+function renderMovieFields(){
+  movieFields.innerHTML = "";
+  state.players.forEach((p, i)=>{
+    const row = document.createElement("div");
+    row.className = "movies-row";
+    row.innerHTML = `<span class="pname">${p.name}</span><input type="number" min="0" max="200" value="0" id="movies-${i}">`;
+    movieFields.appendChild(row);
+  });
+}
+
+document.getElementById("btnStartGame").addEventListener("click", ()=>{
+  state.players.forEach((p,i)=>{
+    p.movies = Math.max(0, parseInt(document.getElementById(`movies-${i}`).value) || 0);
+  });
+  let minMovies = Math.min(...state.players.map(p=>p.movies));
+  let candidates = state.players.map((p,i)=>i).filter(i=>state.players[i].movies===minMovies);
+  let starter = candidates[Math.floor(Math.random()*candidates.length)];
+
+  state.order = [];
+  for(let i=0;i<state.players.length;i++){ state.order.push((starter+i)%state.players.length); }
+  state.currentRound = 1;
+  state.turnIndex = 0;
+  state.usedCharacters = new Set();
+
+  showScreen("screen-game");
+  startTurn();
+});
+
+/* ============ PAS 3-4: JOC ============ */
+const scoreboard = document.getElementById("scoreboard");
+const roundInfo = document.getElementById("roundInfo");
+const turnBanner = document.getElementById("turnBanner");
+const cardsGrid = document.getElementById("cardsGrid");
+const guessArea = document.getElementById("guessArea");
+const chosenPreview = document.getElementById("chosenPreview");
+const guessInput = document.getElementById("guessInput");
+
+function renderScoreboard(){
+  scoreboard.innerHTML = "";
+  const activePlayerIdx = state.order[state.turnIndex];
+  state.players.forEach((p, i)=>{
+    const pill = document.createElement("div");
+    pill.className = "score-pill" + (i===activePlayerIdx ? " current" : "");
+    pill.innerHTML = `<span>${p.name}</span><span class="pts">${p.points} pt</span>`;
+    scoreboard.appendChild(pill);
+  });
+}
+
+function pickRoundCharacters(){
+  const availablePrincesses = CHARACTERS.filter(c=>c.princess && !state.usedCharacters.has(c.name));
+  const availableOthers = CHARACTERS.filter(c=>!c.princess && !state.usedCharacters.has(c.name));
+  let options = [];
+  if(availablePrincesses.length>0){ options.push(shuffle(availablePrincesses)[0]); }
+  const others = shuffle(availableOthers).slice(0, 4-options.length);
+  options = options.concat(others);
+  if(options.length<4){
+    const rest = shuffle(CHARACTERS.filter(c=>!options.includes(c) && !state.usedCharacters.has(c.name)));
+    while(options.length<4 && rest.length){ options.push(rest.pop()); }
+  }
+  return shuffle(options);
+}
+
+function startTurn(){
+  if(state.currentRound > state.totalRounds){ endGame(); return; }
+  const activePlayerIdx = state.order[state.turnIndex];
+  const player = state.players[activePlayerIdx];
+
+  renderScoreboard();
+  roundInfo.textContent = `Ronda ${state.currentRound} de ${state.totalRounds}`;
+  turnBanner.textContent = `🎯 Torn de ${player.name}!`;
+
+  state.currentOptions = pickRoundCharacters();
+  state.selectedOption = null;
+  guessArea.classList.remove("active");
+  guessInput.value = "";
+
+  cardsGrid.innerHTML = "";
+  state.currentOptions.forEach((c, idx)=>{
+    const card = document.createElement("div");
+    card.className = "char-card" + (c.princess ? " princess-card" : "");
+    card.dataset.idx = idx;
+    card.innerHTML = `
+      <div class="avatar-badge"><span class="emoji-face">${c.emoji}</span></div>
+      <div class="clue">${c.clue}</div>`;
+    card.addEventListener("click", ()=>selectCard(idx));
+    cardsGrid.appendChild(card);
+  });
+}
+
+function selectCard(idx){
+  state.selectedOption = idx;
+  document.querySelectorAll(".char-card").forEach((el,i)=>{ el.classList.toggle("selected", i===idx); });
+  chosenPreview.textContent = `Has triat aquest personatge — escriu qui creus que és!`;
+  guessArea.classList.add("active");
+  guessInput.focus();
+}
+
+function submitGuess(){
+  if(state.selectedOption===null) return;
+  const guess = normalize(guessInput.value);
+  if(!guess) return;
+
+  const character = state.currentOptions[state.selectedOption];
+  const isCorrect = character.accepted.some(a => normalize(a)===guess);
+
+  const activePlayerIdx = state.order[state.turnIndex];
+  const player = state.players[activePlayerIdx];
+
+  if(isCorrect){
+    const pts = character.princess ? 2 : 1;
+    player.points += pts;
+    state.usedCharacters.add(character.name);
+    showFeedback(true, character, pts);
+  } else {
+    showFeedback(false, character, 0);
+  }
+}
+
+document.getElementById("btnSubmitGuess").addEventListener("click", submitGuess);
+guessInput.addEventListener("keydown", (e)=>{ if(e.key==="Enter") submitGuess(); });
+
+/* ---- Feedback overlay + confetti ---- */
+const feedbackOverlay = document.getElementById("feedbackOverlay");
+const feedbackBox = document.getElementById("feedbackBox");
+const feedbackAvatar = document.getElementById("feedbackAvatar");
+const feedbackEmoji = document.getElementById("feedbackEmoji");
+const feedbackTitle = document.getElementById("feedbackTitle");
+const feedbackText = document.getElementById("feedbackText");
+
+function showFeedback(correct, character, pts){
+  feedbackBox.className = "feedback-box " + (correct ? "correct" : "wrong");
+  feedbackAvatar.innerHTML = `<span class="emoji-face">${character.emoji}</span>`;
+  if(correct){
+    feedbackEmoji.textContent = character.princess ? "👑" : "🎉";
+    feedbackTitle.textContent = "Correcte!";
+    feedbackText.textContent = `Era ${character.name}! Guanyes ${pts} punt${pts>1?"s":""}${character.princess ? " (és una princesa Disney!)" : ""}.`;
+    launchConfetti();
+  } else {
+    feedbackEmoji.textContent = "😅";
+    feedbackTitle.textContent = "Ui, no era això!";
+    feedbackText.textContent = `En realitat era ${character.name}. La propera vegada ho endevinaràs!`;
+  }
+  feedbackOverlay.classList.add("show");
+}
+
+document.getElementById("btnFeedbackClose").addEventListener("click", ()=>{
+  feedbackOverlay.classList.remove("show");
+  advanceTurn();
+});
+
+function launchConfetti(){
+  const emojis = ["🎉","✨","🎊","⭐","💖","🌟"];
+  for(let i=0;i<26;i++){
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    piece.style.left = Math.random()*100+"vw";
+    piece.style.animationDuration = (1.6+Math.random()*1.4)+"s";
+    piece.style.fontSize = (16+Math.random()*16)+"px";
+    document.body.appendChild(piece);
+    setTimeout(()=>piece.remove(), 3200);
+  }
+}
+
+function advanceTurn(){
+  state.turnIndex++;
+  if(state.turnIndex >= state.order.length){ state.turnIndex = 0; state.currentRound++; }
+  startTurn();
+}
+
+/* ============ FINAL ============ */
+function endGame(){
+  showScreen("screen-final");
+  const ranking = state.players.slice().sort((a,b)=>b.points-a.points);
+  document.getElementById("winnerName").textContent = `${ranking[0].name} 🎉`;
+  const finalRanking = document.getElementById("finalRanking");
+  finalRanking.innerHTML = "";
+  ranking.forEach((p,i)=>{
+    const row = document.createElement("div");
+    row.className = "rank-row";
+    const medal = ["🥇","🥈","🥉"][i] || `${i+1}è`;
+    row.innerHTML = `<span>${medal} ${p.name}</span><span>${p.points} pt</span>`;
+    finalRanking.appendChild(row);
+  });
+  launchConfetti();
+}
+
+document.getElementById("btnRestart").addEventListener("click", ()=>{
+  state = { players: [], order: [], currentRound:1, totalRounds:5, turnIndex:0, usedCharacters: new Set(), currentOptions: [], selectedOption: null };
+  numPlayersInput.value = 2;
+  renderNameFields();
+  showScreen("screen-players");
+});
+</script>
+</body>
+</html>
