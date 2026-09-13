@@ -62,7 +62,7 @@
 
   label.field-label{ display:block; font-weight:bold; margin:14px 0 6px; color:var(--purple); }
 
-  input[type=number], input[type=text]{
+  input[type=number], input[type=text], select{
     width:100%; padding:12px 14px; border-radius:14px; border:3px solid #e2d4ff;
     font-size:17px; font-family:inherit; background:#fff; outline:none;
     transition:border-color .2s, transform .15s;
@@ -128,10 +128,30 @@
   }
   .avatar-badge .emoji-face{ font-size:64px; line-height:1; }
   .char-card .clue{ font-size:13.5px; color:#5a4a7a; line-height:1.35; min-height:52px; }
+  .char-card.locked-out{ opacity:.4; cursor:not-allowed; pointer-events:none; }
+  .char-card .clue-level-tag{
+    display:inline-block; margin-bottom:4px; font-size:10.5px; font-weight:bold;
+    padding:2px 8px; border-radius:999px; letter-spacing:.3px;
+  }
+  .clue-level-tag.lvl-0{ background:#ffd6d6; color:#a11d1d; }
+  .clue-level-tag.lvl-1{ background:#fff0b3; color:#8a6d00; }
+  .clue-level-tag.lvl-2{ background:#d4f7d4; color:#1f7a1f; }
 
   .guess-area{ margin-top:18px; display:none; }
   .guess-area.active{display:block; animation:popIn .3s;}
   .guess-area .chosen-preview{ text-align:center; font-size:15px; color:var(--purple); margin-bottom:10px; font-weight:bold; }
+  .current-clue-box{
+    background:#fff; border:3px dashed var(--purple); border-radius:16px;
+    padding:12px 16px; font-size:15px; color:var(--ink); text-align:center;
+    margin-bottom:10px; font-weight:bold;
+  }
+  .points-hint{ text-align:center; font-size:14px; color:#5a4a7a; margin-bottom:12px; }
+  .points-hint b{ color:var(--purple); }
+  .btn-next-clue{
+    display:block; width:100%; margin-top:12px; padding:11px; font-size:14.5px;
+    background:#fff; color:var(--purple); border:3px solid var(--purple);
+  }
+  .btn-next-clue:disabled{ opacity:.4; cursor:not-allowed; }
   .guess-row{ display:flex; gap:10px; }
   .guess-row button{ padding:12px 22px; background:linear-gradient(135deg,var(--green),#1fa85c); color:#fff; font-size:16px; box-shadow:0 6px 0 #157a41; }
   .guess-row button:active{transform:translateY(3px); box-shadow:0 3px 0 #157a41;}
@@ -177,7 +197,13 @@
     <div class="card">
       <h2 class="step-title"><span class="badge">1</span> Quants jugadors hi participaran?</h2>
       <label class="field-label">Nombre de jugadors (2 a 6)</label>
-      <input type="number" id="numPlayers" min="2" max="6" value="2">
+      <select id="numPlayers">
+        <option value="2">2 jugadors</option>
+        <option value="3">3 jugadors</option>
+        <option value="4">4 jugadors</option>
+        <option value="5">5 jugadors</option>
+        <option value="6">6 jugadors</option>
+      </select>
       <div id="nameFields" style="margin-top:16px;"></div>
       <button class="btn-main" id="btnGoMovies">Següent ➜</button>
     </div>
@@ -200,10 +226,13 @@
       <div class="cards-grid" id="cardsGrid"></div>
       <div class="guess-area" id="guessArea">
         <div class="chosen-preview" id="chosenPreview"></div>
+        <div class="current-clue-box" id="currentClueBox"></div>
+        <div class="points-hint" id="pointsHint"></div>
         <div class="guess-row">
           <input type="text" id="guessInput" placeholder="Escriu el nom del personatge...">
           <button id="btnSubmitGuess">Comprovar ✔️</button>
         </div>
+        <button class="btn-next-clue" id="btnNextClue">Vull una pista més fàcil 🔍</button>
       </div>
     </div>
   </section>
@@ -235,61 +264,770 @@
 /* ============ DADES DELS PERSONATGES ============ */
 const CHARACTERS = [
   // ---- PRINCESES ----
-  {name:"Blancaneu", princess:true, emoji:"🍎", clue:"Viu amb set nans a un bosc i va menjar una poma enverinada.", accepted:["blancaneu","blancanieves","snow white"]},
-  {name:"La Ventafocs", princess:true, emoji:"👠", clue:"Va perdre una sabata de vidre a mitjanit en un ball reial.", accepted:["ventafocs","la ventafocs","cenicienta","cinderella"]},
-  {name:"Aurora", princess:true, emoji:"🌹", clue:"Es va punxar el dit amb una filosa i va caure en un son profund.", accepted:["aurora","bella dorment","la bella dorment","sleeping beauty"]},
-  {name:"Ariel", princess:true, emoji:"🧜‍♀️", clue:"És una sireneta que somia viure a terra ferma.", accepted:["ariel"]},
-  {name:"Bella", princess:true, emoji:"🌹", clue:"Estima llegir i s'enamora d'una bèstia amb bon cor.", accepted:["bella","belle"]},
-  {name:"Jasmine", princess:true, emoji:"🧞", clue:"Princesa d'Agrabah que vola en catifa màgica.", accepted:["jasmine","jasmín","yasmin"]},
-  {name:"Pocahontas", princess:true, emoji:"🍃", clue:"Parla amb els esperits de la natura i el vent.", accepted:["pocahontas"]},
-  {name:"Mulan", princess:true, emoji:"🐉", clue:"Es disfressa de soldat per salvar el seu pare.", accepted:["mulan"]},
-  {name:"Tiana", princess:true, emoji:"🐸", clue:"Somia obrir el seu propi restaurant a Nova Orleans.", accepted:["tiana"]},
-  {name:"Rapunzel", princess:true, emoji:"👱‍♀️", clue:"Té els cabells màgics i molt, molt llargs.", accepted:["rapunzel"]},
-  {name:"Mèrida", princess:true, emoji:"🏹", clue:"Escocesa, cabell roig rinxolat i gran arquera.", accepted:["merida","mèrida"]},
-  {name:"Vaiana", princess:true, emoji:"🌊", clue:"Navega pel mar per salvar la seva illa.", accepted:["vaiana","moana"]},
-  {name:"Elsa", princess:true, emoji:"❄️", clue:"Reina del gel que pot congelar tot el que toca.", accepted:["elsa"]},
-  {name:"Anna", princess:true, emoji:"⛄", clue:"Germana valenta que busca la reina del gel a les muntanyes.", accepted:["anna"]},
+  {name:"Blancaneu", princess:true, emoji:"🍎", accepted:["blancaneu","blancanieves","snow white"], clues:[
+    "La primera princesa de la història del cinema d'animació de Disney.",
+    "Viu amb set nans a un bosc i va menjar una poma enverinada.",
+    "Pell blanca com la neu, llavis vermells i cabell negre; un petó la desperta."]},
+  {name:"La Ventafocs", princess:true, emoji:"👠", accepted:["ventafocs","la ventafocs","cenicienta","cinderella"], clues:[
+    "La tracten com una criada a casa seva, però somia amb un futur millor.",
+    "Va perdre una sabata de vidre a mitjanit en un ball reial.",
+    "El seu carruatge era una carbassa i les seves amigues, uns ratolins."]},
+  {name:"Aurora", princess:true, emoji:"🌹", accepted:["aurora","bella dorment","la bella dorment","sleeping beauty"], clues:[
+    "Una fada dolenta li va llançar una maledicció el dia que va néixer.",
+    "Es va punxar el dit amb una filosa i va caure en un son profund.",
+    "Un petó d'amor veritable la desperta; també se la coneix com la Bella Dorment."]},
+  {name:"Ariel", princess:true, emoji:"🧜‍♀️", accepted:["ariel"], clues:[
+    "Viu en un regne sota l'aigua i col·lecciona objectes humans.",
+    "És una sireneta que somia viure a terra ferma.",
+    "Té els cabells vermells i una cua de peix verda; canvia la veu per tenir cames."]},
+  {name:"Bella", princess:true, emoji:"🌹", accepted:["bella","belle"], clues:[
+    "Al seu poble la troben una mica diferent perquè li agrada molt llegir.",
+    "Estima llegir i s'enamora d'una bèstia amb bon cor.",
+    "Viu en un castell encantat amb objectes que parlen, com una tetera i un rellotge."]},
+  {name:"Jasmine", princess:true, emoji:"🧞", accepted:["jasmine","jasmín","yasmin"], clues:[
+    "Viu tancada en un palau i vol triar el seu propi destí.",
+    "Princesa d'Agrabah que vola en catifa màgica.",
+    "Té un tigre de mascota anomenat Ràjà i vola en catifa amb en Aladdin."]},
+  {name:"Pocahontas", princess:true, emoji:"🍃", accepted:["pocahontas"], clues:[
+    "Viu en una tribu i ha de triar entre dos mons diferents.",
+    "Parla amb els esperits de la natura i el vent.",
+    "Filla d'un cap indi, s'enamora d'un explorador anomenat John Smith."]},
+  {name:"Mulan", princess:true, emoji:"🐉", accepted:["mulan"], clues:[
+    "Pren una decisió que ningú del seu poble esperaria d'ella.",
+    "Es disfressa de soldat per salvar el seu pare.",
+    "Es talla els cabells i es fa passar per un home per entrar a l'exèrcit xinès."]},
+  {name:"Tiana", princess:true, emoji:"🐸", accepted:["tiana"], clues:[
+    "Treballa molt dur per aconseguir el seu somni a Nova Orleans.",
+    "Somia obrir el seu propi restaurant a Nova Orleans.",
+    "Besa una granota que en realitat és un príncep, i ella també es converteix en granota."]},
+  {name:"Rapunzel", princess:true, emoji:"👱‍♀️", accepted:["rapunzel"], clues:[
+    "Ha estat tancada en una torre des de petita per una dona que no és la seva mare de veritat.",
+    "Té els cabells màgics i molt, molt llargs.",
+    "El seu cabell brilla quan canta i pot arribar a mesurar desenes de metres."]},
+  {name:"Mèrida", princess:true, emoji:"🏹", accepted:["merida","mèrida"], clues:[
+    "No vol seguir les tradicions que la seva mare li vol imposar.",
+    "Escocesa, cabell roig rinxolat i gran arquera.",
+    "Un desig mal formulat converteix la seva mare en un ós."]},
+  {name:"Vaiana", princess:true, emoji:"🌊", accepted:["vaiana","moana"], clues:[
+    "Sent la crida de l'oceà encara que el seu poble no navega mai mar endins.",
+    "Navega pel mar per salvar la seva illa.",
+    "Viatja amb un semidéu anomenat Maui per retornar el cor de Te Fiti."]},
+  {name:"Elsa", princess:true, emoji:"❄️", accepted:["elsa"], clues:[
+    "Amaga un secret des de petita per por de fer mal a la seva germana.",
+    "Reina del gel que pot congelar tot el que toca.",
+    "Crea un castell de gel a la muntanya i té una germana anomenada Anna."]},
+  {name:"Anna", princess:true, emoji:"⛄", accepted:["anna"], clues:[
+    "Va créixer sola perquè la seva germana es va tancar a la seva habitació durant anys.",
+    "Germana valenta que busca la reina del gel a les muntanyes.",
+    "Viatja amb un ren i un venedor de gel per trobar la seva germana Elsa."]},
 
   // ---- ALTRES PERSONATGES ----
-  {name:"Mickey Mouse", princess:false, emoji:"🐭", clue:"El ratolí més famós del món, sempre somrient.", accepted:["mickey","mickey mouse"]},
-  {name:"Minnie Mouse", princess:false, emoji:"🎀", clue:"Porta sempre un llaç vermell al cap.", accepted:["minnie","minnie mouse"]},
-  {name:"Donald Duck", princess:false, emoji:"🦆", clue:"Un ànec molt geniüt que porta jaqueta blava.", accepted:["donald","ànec donald","pato donald","donald duck"]},
-  {name:"Goofy", princess:false, emoji:"🐶", clue:"Un gos alt i despistat que sempre fa riure.", accepted:["goofy","tribilín"]},
-  {name:"Pluto", princess:false, emoji:"🐕", clue:"El gos fidel de Mickey Mouse.", accepted:["pluto"]},
-  {name:"Simba", princess:false, emoji:"🦁", clue:"Cadell de lleó que serà el rei de la sabana.", accepted:["simba"]},
-  {name:"Woody", princess:false, emoji:"🤠", clue:"Un vaquer de joguina amb barret i xerif estrella.", accepted:["woody"]},
-  {name:"Buzz Lightyear", princess:false, emoji:"🚀", clue:"Astronauta de joguina que creu que pot volar de veritat.", accepted:["buzz","buzz lightyear"]},
-  {name:"Nemo", princess:false, emoji:"🐠", clue:"Un petit peix taronja amb una aleta especial.", accepted:["nemo"]},
-  {name:"Dory", princess:false, emoji:"🐟", clue:"Un peix blau que oblida les coses molt de pressa.", accepted:["dory"]},
-  {name:"Stitch", princess:false, emoji:"👽", clue:"Un extraterrestre blau molt trapella que estima l'ohana.", accepted:["stitch"]},
-  {name:"Aladdin", princess:false, emoji:"🪔", clue:"Troba una llàntia amb un geni dins.", accepted:["aladdin","aladí"]},
-  {name:"Peter Pan", princess:false, emoji:"🧚", clue:"El nen que no vol créixer i vola cap al País de Mai Més.", accepted:["peter pan"]},
-  {name:"Pinotxo", princess:false, emoji:"🪵", clue:"Un nino de fusta que somia ser un nen de veritat.", accepted:["pinotxo","pinocho","pinocchio"]},
-  {name:"Hèrcules", princess:false, emoji:"💪", clue:"Fill de Zeus que ha de convertir-se en un heroi.", accepted:["hercules","hèrcules"]},
-  {name:"Tarzan", princess:false, emoji:"🌴", clue:"Va créixer a la selva criat pels goril·les.", accepted:["tarzan","tarzán"]},
-  {name:"Baloo", princess:false, emoji:"🐻", clue:"Un ós despreocupat que canta sobre les coses més simples de la vida.", accepted:["baloo"]},
-  {name:"Timó", princess:false, emoji:"🦫", clue:"Una suricata bromista, amic inseparable d'un facoquer.", accepted:["timon","timó"]},
-  {name:"Pumbaa", princess:false, emoji:"🐗", clue:"Un facoquer bonàs que estima cantar 'Hakuna Matata'.", accepted:["pumbaa"]},
-  {name:"Olaf", princess:false, emoji:"☃️", clue:"Un ninot de neu que somia amb l'estiu.", accepted:["olaf"]},
-  {name:"Kristoff", princess:false, emoji:"🦌", clue:"Un venedor de gel que viatja amb el seu ren.", accepted:["kristoff"]},
-  {name:"Geni", princess:false, emoji:"🧞‍♂️", clue:"Viu dins una llàntia i concedeix tres desitjos.", accepted:["geni","genio","genie"]},
-  {name:"Sebastià", princess:false, emoji:"🦀", clue:"Un cranc que toca música i vigila una sireneta.", accepted:["sebastian","sebastià"]},
-  {name:"Mufasa", princess:false, emoji:"🦁", clue:"El savi rei lleó que mira el seu regne des del Penyal del Rei.", accepted:["mufasa"]},
-  {name:"Scar", princess:false, emoji:"😼", clue:"El germà gelós que vol el tron de la sabana.", accepted:["scar"]},
-  {name:"Capità Garfi", princess:false, emoji:"🪝", clue:"Un pirata amb un ganxo en comptes de mà, té por dels cocodrils.", accepted:["capita garfi","capità garfi","garfio","captain hook"]},
-  {name:"Winnie the Pooh", princess:false, emoji:"🍯", clue:"Un osset que adora la mel més que res al món.", accepted:["winnie","winnie the pooh","pooh"]},
-  {name:"Tigger", princess:false, emoji:"🐯", clue:"Un tigre que sempre bota amunt i avall.", accepted:["tigger"]},
-  {name:"Dumbo", princess:false, emoji:"🐘", clue:"Un elefantó amb unes orelles tan grans que pot volar-hi.", accepted:["dumbo"]},
-  {name:"Bambi", princess:false, emoji:"🦌", clue:"Un cervatell que aprèn a caminar al bosc amb els seus amics.", accepted:["bambi"]},
-  {name:"Alícia", princess:false, emoji:"🐇", clue:"Cau per un forat de conill i arriba a un país de meravelles.", accepted:["alicia","alícia","alice"]},
-  {name:"Jack Sparrow", princess:false, emoji:"🏴‍☠️", clue:"Un pirata excèntric sempre a la recerca d'un tresor.", accepted:["jack sparrow","capitan jack sparrow"]},
-  {name:"Sully", princess:false, emoji:"🟦", clue:"Un monstre blau i pelut que treballa espantant nens.", accepted:["sully","sulley"]},
-  {name:"Mike Wazowski", princess:false, emoji:"👁️", clue:"Un monstre verd amb un sol ull enorme.", accepted:["mike","mike wazowski"]},
-  {name:"Remy", princess:false, emoji:"🐀", clue:"Una rata que somia ser un gran cuiner a París.", accepted:["remy"]},
-  {name:"WALL-E", princess:false, emoji:"🤖", clue:"Un petit robot que neteja un planeta Terra abandonat.", accepted:["wall-e","walle"]},
-  {name:"Baymax", princess:false, emoji:"🩹", clue:"Un robot inflable blanc que cuida la salut de tothom.", accepted:["baymax"]},
-  {name:"Judy Hopps", princess:false, emoji:"🐰", clue:"Una conilla decidida a ser la primera policia de la ciutat.", accepted:["judy","judy hopps"]},
-  {name:"Nick Wilde", princess:false, emoji:"🦊", clue:"Una guineu murrieta que ajuda a resoldre un misteri a la ciutat.", accepted:["nick","nick wilde"]},
+  {name:"Mickey Mouse", princess:false, emoji:"🐭", accepted:["mickey","mickey mouse"], clues:[
+    "És la mascota més antiga d'un gran estudi d'animació.",
+    "El ratolí més famós del món, sempre somrient.",
+    "Té dues orelles rodones ben grans i porta guants blancs i pantalons vermells."]},
+  {name:"Minnie Mouse", princess:false, emoji:"🎀", accepted:["minnie","minnie mouse"], clues:[
+    "És la parella d'un ratolí molt famós.",
+    "Porta sempre un llaç vermell al cap.",
+    "Ratolina amb un llaç vermell de puntets blancs i sabates de taló."]},
+  {name:"Donald Duck", princess:false, emoji:"🦆", accepted:["donald","ànec donald","pato donald","donald duck"], clues:[
+    "S'enfada amb molta facilitat quan les coses no li surten bé.",
+    "Un ànec molt geniüt que porta jaqueta blava.",
+    "Ànec blanc amb jaqueta blava marinera i sense pantalons."]},
+  {name:"Goofy", princess:false, emoji:"🐶", accepted:["goofy","tribilín"], clues:[
+    "Sempre acaba fent entrebancs però mai perd el bon humor.",
+    "Un gos alt i despistat que sempre fa riure.",
+    "Gos alt amb un crit molt característic quan cau, i porta un barret verd."]},
+  {name:"Pluto", princess:false, emoji:"🐕", accepted:["pluto"], clues:[
+    "No parla, però és un dels animals de companyia més famosos dels dibuixos.",
+    "El gos fidel de Mickey Mouse.",
+    "Gos taronja de quatre potes que és la mascota de Mickey."]},
+  {name:"Simba", princess:false, emoji:"🦁", accepted:["simba"], clues:[
+    "Ha de fugir de casa seva després d'un moment molt trist.",
+    "Cadell de lleó que serà el rei de la sabana.",
+    "El seu pare Mufasa li ensenya des del Penyal del Rei; de gran torna a recuperar el seu regne."]},
+  {name:"Woody", princess:false, emoji:"🤠", accepted:["woody"], clues:[
+    "Té por que un joguet nou li prengui el lloc preferit del seu propietari.",
+    "Un vaquer de joguina amb barret i xerif estrella.",
+    "Vaquer de drap amb una estrella de xerif al pit, amic d'en Buzz Lightyear."]},
+  {name:"Buzz Lightyear", princess:false, emoji:"🚀", accepted:["buzz","buzz lightyear"], clues:[
+    "No sap que és una joguina; es creu un heroi espacial de veritat.",
+    "Astronauta de joguina que creu que pot volar de veritat.",
+    "Diu que arriba 'cap a l'infinit i més enllà' i té ales que s'obren als costats."]},
+  {name:"Nemo", princess:false, emoji:"🐠", accepted:["nemo"], clues:[
+    "El seu pare el busca per tot l'oceà quan desapareix.",
+    "Un petit peix taronja amb una aleta especial.",
+    "Peix pallasso taronja amb ratlles blanques i una aleta més petita que l'altra."]},
+  {name:"Dory", princess:false, emoji:"🐟", accepted:["dory"], clues:[
+    "Ajuda un pare a buscar el seu fill, encara que sovint oblida per què ho fa.",
+    "Un peix blau que oblida les coses molt de pressa.",
+    "Peix cirurgià blau i groc que diu que cal seguir nedant."]},
+  {name:"Stitch", princess:false, emoji:"👽", accepted:["stitch"], clues:[
+    "Va ser creat com un experiment i acaba trobant una família a Hawaii.",
+    "Un extraterrestre blau molt trapella que estima l'ohana.",
+    "Ésser blau amb moltes potes i urpes, amic d'una nena anomenada Lilo."]},
+  {name:"Aladdin", princess:false, emoji:"🪔", accepted:["aladdin","aladí"], clues:[
+    "Viu al carrer i somia amb una vida millor lluny de la pobresa.",
+    "Troba una llàntia amb un geni dins.",
+    "Vola en catifa amb la princesa Jasmine després de trobar una llàntia màgica."]},
+  {name:"Peter Pan", princess:false, emoji:"🧚", accepted:["peter pan"], clues:[
+    "Viu en un lloc on ningú es fa gran mai.",
+    "El nen que no vol créixer i vola cap al País de Mai Més.",
+    "Vesteix de verd, sap volar i té una fada anomenada Campaneta."]},
+  {name:"Pinotxo", princess:false, emoji:"🪵", accepted:["pinotxo","pinocho","pinocchio"], clues:[
+    "Un vell fuster desitja que la seva creació es converteixi en algú de veritat.",
+    "Un nino de fusta que somia ser un nen de veritat.",
+    "Quan diu mentides, el nas li creix; té un grill com a consciència."]},
+  {name:"Hèrcules", princess:false, emoji:"💪", accepted:["hercules","hèrcules"], clues:[
+    "Ha de demostrar que és digne de tornar a l'Olimp.",
+    "Fill de Zeus que ha de convertir-se en un heroi.",
+    "Fill de Zeus amb una força sobrehumana, entrenat per convertir-se en heroi grec."]},
+  {name:"Tarzan", princess:false, emoji:"🌴", accepted:["tarzan","tarzán"], clues:[
+    "No sap que pertany a una altra espècie fins que en coneix una altra.",
+    "Va créixer a la selva criat pels goril·les.",
+    "Es balanceja per la selva amb lianes i va ser criat per goril·les."]},
+  {name:"Baloo", princess:false, emoji:"🐻", accepted:["baloo"], clues:[
+    "Ensenya a un nen humà a viure sense preocupacions a la selva.",
+    "Un ós despreocupat que canta sobre les coses més simples de la vida.",
+    "Ós blau de la selva que canta sobre les coses més senzilles de la vida."]},
+  {name:"Timó", princess:false, emoji:"🦫", accepted:["timon","timó"], clues:[
+    "Viu segons una filosofia de vida sense preocupacions.",
+    "Una suricata bromista, amic inseparable d'un facoquer.",
+    "Suricata que canta 'Hakuna Matata' amb el seu amic facoquer."]},
+  {name:"Pumbaa", princess:false, emoji:"🐗", accepted:["pumbaa"], clues:[
+    "El seu millor amic és una suricata i viuen despreocupats a la selva.",
+    "Un facoquer bonàs que estima cantar 'Hakuna Matata'.",
+    "Facoquer una mica pudent, molt bon amic d'una suricata."]},
+  {name:"Olaf", princess:false, emoji:"☃️", accepted:["olaf"], clues:[
+    "Va ser creat amb un desig de dues germanes que jugaven de petites.",
+    "Un ninot de neu que somia amb l'estiu.",
+    "Ninot de neu que parla, adora l'estiu i no sap que es fondria al sol."]},
+  {name:"Kristoff", princess:false, emoji:"🦌", accepted:["kristoff"], clues:[
+    "Viatja sol per les muntanyes gelades amb el seu millor amic animal.",
+    "Un venedor de gel que viatja amb el seu ren.",
+    "Venedor de gel amb un ren anomenat Sven que ajuda una princesa a trobar la seva germana."]},
+  {name:"Geni", princess:false, emoji:"🧞‍♂️", accepted:["geni","genio","genie"], clues:[
+    "Ha estat atrapat durant milers d'anys esperant que algú el desperti.",
+    "Viu dins una llàntia i concedeix tres desitjos.",
+    "Ésser blau molt graciós que surt d'una llàntia i concedeix tres desitjos."]},
+  {name:"Sebastià", princess:false, emoji:"🦀", accepted:["sebastian","sebastià"], clues:[
+    "Vigila una princesa del mar per encàrrec del seu pare, el rei.",
+    "Un cranc que toca música i vigila una sireneta.",
+    "Cranc vermell que canta sobre la vida sota el mar i vigila l'Ariel."]},
+  {name:"Mufasa", princess:false, emoji:"🦁", accepted:["mufasa"], clues:[
+    "Ensenya al seu fill l'equilibri de la vida des d'un penyal.",
+    "El savi rei lleó que mira el seu regne des del Penyal del Rei.",
+    "El pare de Simba, mort per culpa del seu germà Scar."]},
+  {name:"Scar", princess:false, emoji:"😼", accepted:["scar"], clues:[
+    "Sent enveja del seu germà des de fa molt de temps.",
+    "El germà gelós que vol el tron de la sabana.",
+    "Germà malvat de Mufasa amb una crinera fosca que vol ser rei."]},
+  {name:"Capità Garfi", princess:false, emoji:"🪝", accepted:["capita garfi","capità garfi","garfio","captain hook"], clues:[
+    "Un cocodril el persegueix des que va perdre una part del cos.",
+    "Un pirata amb un ganxo en comptes de mà, té por dels cocodrils.",
+    "Pirata amb un ganxo de metall a la mà i enemic de Peter Pan."]},
+  {name:"Winnie the Pooh", princess:false, emoji:"🍯", accepted:["winnie","winnie the pooh","pooh"], clues:[
+    "Viu al Bosc dels Cent Aquers amb els seus amics.",
+    "Un osset que adora la mel més que res al món.",
+    "Osset groc panxut que sempre busca mel als arbres."]},
+  {name:"Tigger", princess:false, emoji:"🐯", accepted:["tigger"], clues:[
+    "Diu que és l'únic del seu tipus al Bosc dels Cent Aquers.",
+    "Un tigre que sempre bota amunt i avall.",
+    "Tigre taronja amb ratlles que bota sobre la cua i és amic d'en Winnie."]},
+  {name:"Dumbo", princess:false, emoji:"🐘", accepted:["dumbo"], clues:[
+    "El separen de la seva mare per culpa d'una diferència física.",
+    "Un elefantó amb unes orelles tan grans que pot volar-hi.",
+    "Elefant petit que vola gràcies a les seves orelles enormes."]},
+  {name:"Bambi", princess:false, emoji:"🦌", accepted:["bambi"], clues:[
+    "Perd la seva mare de petit i ha d'aprendre a valer-se sol al bosc.",
+    "Un cervatell que aprèn a caminar al bosc amb els seus amics.",
+    "Cervatell amic d'un conill anomenat Tambor i una mofeta anomenada Flor."]},
+  {name:"Alícia", princess:false, emoji:"🐇", accepted:["alicia","alícia","alice"], clues:[
+    "Segueix un animal amb rellotge i acaba en un lloc que no té cap sentit.",
+    "Cau per un forat de conill i arriba a un país de meravelles.",
+    "Cau per la conillera i coneix un Barreter Boig i un Gat de Cheshire."]},
+  {name:"Jack Sparrow", princess:false, emoji:"🏴‍☠️", accepted:["jack sparrow","capitan jack sparrow"], clues:[
+    "Sempre busca un tresor, encara que el seu vaixell li doni molts problemes.",
+    "Un pirata excèntric sempre a la recerca d'un tresor.",
+    "Pirata amb trenetes al cabell i el vaixell Perla Negra."]},
+  {name:"Sully", princess:false, emoji:"🟦", accepted:["sully","sulley"], clues:[
+    "El seu treball consisteix a fer que els nens cridin, sense fer-los mal de veritat.",
+    "Un monstre blau i pelut que treballa espantant nens.",
+    "Monstre blau enorme i pelut amb taques violetes que fa amistat amb una nena."]},
+  {name:"Mike Wazowski", princess:false, emoji:"👁️", accepted:["mike","mike wazowski"], clues:[
+    "És el millor amic d'un monstre pelut molt més gran que ell.",
+    "Un monstre verd amb un sol ull enorme.",
+    "Monstre verd, rodó, amb un sol ull gegant."]},
+  {name:"Remy", princess:false, emoji:"🐀", accepted:["remy"], clues:[
+    "El seu somni xoca amb el fet que a la seva espècie no la deixen entrar a les cuines.",
+    "Una rata que somia ser un gran cuiner a París.",
+    "Rata amb un olfacte excel·lent que cuina amagada sota el barret d'un noi."]},
+  {name:"WALL-E", princess:false, emoji:"🤖", accepted:["wall-e","walle"], clues:[
+    "Porta anys sol fent la mateixa feina en un planeta gairebé buit.",
+    "Un petit robot que neteja un planeta Terra abandonat.",
+    "Robot quadrat amb ulls binoculars que s'enamora d'una robot blanca."]},
+  {name:"Baymax", princess:false, emoji:"🩹", accepted:["baymax"], clues:[
+    "Va ser dissenyat per algú per cuidar la salut de la gent.",
+    "Un robot inflable blanc que cuida la salut de tothom.",
+    "Robot inflable i rodó que es presenta com a cuidador personal de salut."]},
+  {name:"Judy Hopps", princess:false, emoji:"🐰", accepted:["judy","judy hopps"], clues:[
+    "És el primer animal del seu tipus a aconseguir un ofici que ningú esperava.",
+    "Una conilla decidida a ser la primera policia de la ciutat.",
+    "Conilla grisa amb placa de policia que treballa en una ciutat plena d'animals."]},
+  {name:"Nick Wilde", princess:false, emoji:"🦊", accepted:["nick","nick wilde"], clues:[
+    "Sempre desconfien d'ell pel tipus d'animal que és, encara que sigui bo.",
+    "Una guineu murrieta que ajuda a resoldre un misteri a la ciutat.",
+    "Guineu taronja i espavilada que fa equip amb una conilla policia."]},
+
+  // ---- MÉS PRINCESES I PROTAGONISTES REIALS ----
+  {name:"Raya", princess:true, emoji:"⚔️", accepted:["raya"], clues:[
+    "Viatja per un regne dividit en cinc territoris buscant confiança perduda.",
+    "Guerrera que busca l'últim drac per salvar el seu món.",
+    "Porta una espasa i viatja amb una dracona anomenada Sisu."]},
+
+  // ---- TOY STORY ----
+  {name:"Jessie", princess:false, emoji:"🤠", accepted:["jessie"], clues:[
+    "Va ser abandonada pel seu propietari i li costa confiar en la gent.",
+    "Vaquera de joguina, amiga d'en Woody, molt activa i valenta.",
+    "Vaquera pèl-roja amb barret que sap fer acrobàcies a cavall."]},
+  {name:"Rex", princess:false, emoji:"🦖", accepted:["rex"], clues:[
+    "Li costa molt semblar feroç, encara que ho intenta cada dia.",
+    "Dinosaure de joguina, molt nerviós i insegur.",
+    "Dinosaure de plàstic verd que crida quan s'espanta."]},
+  {name:"Sr. Cara de Patata", princess:false, emoji:"🥔", accepted:["sr cara de patata","senor cara de patata","mr potato head","cara de patata"], clues:[
+    "Es pot desmuntar peça a peça i tornar-se a muntar diferent.",
+    "Joguina amb peces intercanviables i caràcter una mica gruny.",
+    "Una patata de plàstic amb ulls, boca i orelles que es poden treure."]},
+  {name:"Hamm", princess:false, emoji:"🐷", accepted:["hamm"], clues:[
+    "Guarda diners i sempre fa comentaris sarcàstics.",
+    "Guardiola de joguina amb sentit de l'humor sec.",
+    "Una guardiola rosa amb forma de porc que parla."]},
+  {name:"Bala Perduda", princess:false, emoji:"🐎", accepted:["bala perduda","bullseye"], clues:[
+    "Fidel company de viatge d'una vaquera i un xerif de joguina.",
+    "Cavall de joguina que no parla però és molt lleial.",
+    "Cavall de peluix taronja amb taques blanques, amic d'en Woody i la Jessie."]},
+  {name:"Forky", princess:false, emoji:"🍴", accepted:["forky"], clues:[
+    "No es considera una joguina i vol tornar sempre a les escombraries.",
+    "Creat amb material reciclat a classe, no entén que ara és una joguina.",
+    "Una forquilla de plàstic amb ulls i cames de plastilina."]},
+  {name:"Bo Peep", princess:false, emoji:"🐑", accepted:["bo peep","bo"], clues:[
+    "Va passar anys vivint pel seu compte lluny d'un propietari.",
+    "Pastora de joguina amb barret, independent i decidida.",
+    "Porta un bastó de pastora i viatja amb tres ovelles de joguina."]},
+  {name:"Lotso", princess:false, emoji:"🧸", accepted:["lotso"], clues:[
+    "El van deixar enrere fa anys i això el va canviar per sempre.",
+    "Ós de peluix que sembla amable però amaga un costat molt dur.",
+    "Ós de peluix rosa que fa olor de maduixa i mana en una guarderia."]},
+  {name:"Emperador Zurg", princess:false, emoji:"🪐", accepted:["zurg","emperador zurg"], clues:[
+    "Un gran enemic espacial que persegueix un heroi galàctic.",
+    "Vilà de joguina amb capa i casc, rival d'un astronauta de joguina.",
+    "Robot violeta amb capa que diu ser el pare d'en Buzz Lightyear."]},
+
+  // ---- FROZEN ----
+  {name:"Hans", princess:false, emoji:"🤴", accepted:["hans","príncep hans","principe hans"], clues:[
+    "Arriba a un regne gelat amb bones maneres que amaguen altres intencions.",
+    "Príncep d'una illa amb dotze germans grans, sense gaires opcions de ser rei.",
+    "Príncep que fingeix estimar l'Anna per intentar quedar-se el tron."]},
+  {name:"Sven", princess:false, emoji:"🦌", accepted:["sven"], clues:[
+    "Company inseparable d'un venedor de gel a les muntanyes.",
+    "Ren que estima les pastanagues més que res al món.",
+    "El ren d'en Kristoff, que gairebé sembla que parli."]},
+
+  // ---- EL REI LLEÓ ----
+  {name:"Rafiki", princess:false, emoji:"🐒", accepted:["rafiki"], clues:[
+    "Un savi de la sabana que veu coses que altres no veuen.",
+    "Mandril vell i savi que guia el futur rei lleó.",
+    "Un mandril amb un bastó que presenta Simba al món al principi de la pel·lícula."]},
+  {name:"Zazu", princess:false, emoji:"🦜", accepted:["zazu"], clues:[
+    "Fa de missatger reial encara que sovint acaba castigat.",
+    "Ocell servicial del rei de la sabana, una mica cargolós.",
+    "Un calau blau que és el majordom volador de Mufasa."]},
+  {name:"Nala", princess:false, emoji:"🦁", accepted:["nala"], clues:[
+    "Va créixer amb el futur rei sense saber què seria d'ell.",
+    "Amiga d'infància de Simba que el retroba de grans.",
+    "Lleona que finalment es converteix en la reina al costat de Simba."]},
+
+  // ---- ALADDIN ----
+  {name:"Jafar", princess:false, emoji:"🐍", accepted:["jafar"], clues:[
+    "El conseller reial més proper al soldà amaga ambicions perilloses.",
+    "Vilà que vol el poder d'un geni per governar Agrabah.",
+    "Bruixot amb barba, bastó de serp i lloro parlant anomenat Iago."]},
+  {name:"Iago", princess:false, emoji:"🦜", accepted:["iago"], clues:[
+    "Sempre acompanya el vilà principal fent-li de veu de la consciència dolenta.",
+    "Lloro parlanchín que ajuda un bruixot malvat als seus plans.",
+    "Un lloro vermell propietat d'en Jafar que no para de queixar-se."]},
+  {name:"Abu", princess:false, emoji:"🐒", accepted:["abu"], clues:[
+    "Sempre acompanya un noi del carrer en les seves aventures.",
+    "Petit lladregot pelut, fidel amic d'un heroi de carrer.",
+    "El mico de mascota d'Aladdin, molt aficionat a robar coses brillants."]},
+  {name:"Ràjà", princess:false, emoji:"🐅", accepted:["raja"], clues:[
+    "Protegeix una princesa dins del palau d'Agrabah.",
+    "Un gran felí que és mascota reial i molt protector.",
+    "El tigre de companyia de la princesa Jasmine."]},
+
+  // ---- LA SIRENETA ----
+  {name:"Úrsula", princess:false, emoji:"🐙", accepted:["ursula"], clues:[
+    "Viu allunyada del palau, esperant l'oportunitat de tornar-hi amb poder.",
+    "Bruixa marina que fa tractes perillosos a canvi de veus.",
+    "Una bruixa pop amb tentacles que roba la veu d'una sireneta."]},
+  {name:"Rei Tritó", princess:false, emoji:"🔱", accepted:["tritó","triton","rei triton"], clues:[
+    "Governa un regne submarí i es preocupa molt per la seva filla petita.",
+    "Rei del mar, pare protector d'una sireneta curiosa.",
+    "El pare de l'Ariel, amb tridó i corona, rei de tots els mars."]},
+  {name:"Flounder", princess:false, emoji:"🐟", accepted:["flounder"], clues:[
+    "Sempre acompanya una sireneta en les seves exploracions arriscades.",
+    "Peix una mica poruc, millor amic d'una princesa del mar.",
+    "Un peixet blau i groc, millor amic de l'Ariel."]},
+  {name:"Scuttle", princess:false, emoji:"🐦", accepted:["scuttle"], clues:[
+    "Coneix (o creu conèixer) tot sobre els objectes que fan servir els humans.",
+    "Ocell expert en 'dinguindons' humans, amic d'una sireneta.",
+    "Una gavina blanca amiga de l'Ariel que sempre s'inventa noms als objectes."]},
+
+  // ---- LA BELLA I LA BÈSTIA ----
+  {name:"La Bèstia", princess:false, emoji:"🐺", accepted:["bèstia","bestia","the beast"], clues:[
+    "Un príncep va ser maleït per no haver mostrat bondat.",
+    "Sota el seu aspecte feroç s'amaga un cor que aprèn a estimar.",
+    "Viu en un castell encantat i s'enamora d'una noia que estima llegir."]},
+  {name:"Lumière", princess:false, emoji:"🕯️", accepted:["lumiere"], clues:[
+    "Un servent del castell va quedar convertit en un objecte encès.",
+    "Candelabre parlant, molt elegant i coquet, del castell encantat.",
+    "Un candelabre daurat que canta sobre ser client al castell."]},
+  {name:"Cogsworth", princess:false, emoji:"🕰️", accepted:["cogsworth"], clues:[
+    "El majordom del castell ara marca les hores literalment.",
+    "Rellotge parlant molt formal, sempre preocupat per les normes.",
+    "Un rellotge de repisa que fa de majordom estricte al castell."]},
+  {name:"Senyora Potts", princess:false, emoji:"🫖", accepted:["senyora potts","sra potts","mrs potts"], clues:[
+    "Cuida de tothom al castell com si fossin de la família.",
+    "Tetera parlant, maternal i dolça, mare d'una petita tassa.",
+    "Una tetera que canta la cançó sobre 'una història com un conte' al castell."]},
+  {name:"Chip", princess:false, emoji:"☕", accepted:["chip"], clues:[
+    "El més petit de la família d'objectes encantats del castell.",
+    "Tassa de te infantil, curiosa i molt simpàtica.",
+    "Una tasseta trencada, fill de la Senyora Potts."]},
+  {name:"Gastó", princess:false, emoji:"🏹", accepted:["gaston","gastó"], clues:[
+    "El caçador més admirat del poble no suporta que el rebutgin.",
+    "Vanitós i fort, vol casar-se amb la noia més bonica del poble.",
+    "Caçador musculós amb botes altes, obsessionat amb la Bella."]},
+
+  // ---- LA VENTAFOCS ----
+  {name:"La Fada Madrina", princess:false, emoji:"✨", accepted:["fada madrina","fairy godmother"], clues:[
+    "Apareix just quan una noia més ho necessita, amb una vareta màgica.",
+    "Converteix objectes normals en coses meravelloses per una nit.",
+    "Diu 'bibbidi bobbidi bu' i converteix una carbassa en carruatge."]},
+  {name:"Lady Tremaine", princess:false, emoji:"😠", accepted:["lady tremaine","madrastra"], clues:[
+    "Tracta la seva fillastra molt pitjor que a les seves pròpies filles.",
+    "Madrastra freda i calculadora que no vol que la Ventafocs sigui feliç.",
+    "La madrastra malvada de la Ventafocs, mare d'Anastàsia i Drizella."]},
+
+  // ---- BLANCANEU ----
+  {name:"Els Set Nans", princess:false, emoji:"⛏️", accepted:["set nans","els set nans","seven dwarfs"], clues:[
+    "Viuen junts en una petita casa al bosc i treballen en equip cada dia.",
+    "Un grup de menudets treballadors que acullen una princesa amagada.",
+    "Doc, Grumpy, Content, Dormilega, Tímid, Esternudaire i Babau: viuen amb la Blancaneu."]},
+  {name:"La Reina Malvada", princess:false, emoji:"🍎", accepted:["reina malvada","evil queen"], clues:[
+    "No suporta que algú altre sigui considerat més bella que ella.",
+    "Pregunta cada dia al seu mirall qui és la més bella del regne.",
+    "Es disfressa de vella per donar una poma enverinada a la Blancaneu."]},
+
+  // ---- LA BELLA DORMENT ----
+  {name:"Príncep Felip", princess:false, emoji:"🤴", accepted:["principe felip","príncep felip","prince phillip"], clues:[
+    "Ha de travessar un bosc d'esbarzers per desfer una maledicció.",
+    "Príncep valent que desperta una princesa amb un petó d'amor veritable.",
+    "Lluita contra un drac per salvar l'Aurora del castell encantat."]},
+  {name:"Malèfica", princess:false, emoji:"🖤", accepted:["malefica","maleficent"], clues:[
+    "No la van convidar a un bateig i mai ho va perdonar.",
+    "Fada malvada amb banyes que llança una maledicció mortal a un nadó.",
+    "Es converteix en un drac gegant per lluitar contra un príncep."]},
+  {name:"Flora, Fauna i Xafardera", princess:false, emoji:"🧚", accepted:["flora fauna xafardera","les tres fades","fades bones"], clues:[
+    "Tres fades bones intenten protegir una princesa d'una maledicció.",
+    "Amaguen una nena al bosc durant setze anys per protegir-la.",
+    "Tres fades vestides de vermell, verd i blau que cuiden l'Aurora."]},
+
+  // ---- POCAHONTAS ----
+  {name:"John Smith", princess:false, emoji:"🧭", accepted:["john smith"], clues:[
+    "Arriba en vaixell a una terra desconeguda buscant fortuna.",
+    "Explorador anglès que aprèn a veure el món d'una altra manera.",
+    "S'enamora de la Pocahontas mentre explora Amèrica."]},
+
+  // ---- MULAN ----
+  {name:"Mushu", princess:false, emoji:"🐲", accepted:["mushu"], clues:[
+    "Vol demostrar que és útil després d'haver perdut el seu estatus.",
+    "Petit drac guardià, parlador i una mica fatxenda.",
+    "Un drac vermell diminut que ajuda la Mulan a l'exèrcit."]},
+  {name:"Li Shang", princess:false, emoji:"🗡️", accepted:["li shang","shang"], clues:[
+    "Entrena un grup de soldats sense saber un gran secret d'un d'ells.",
+    "Capità estricte de l'exèrcit xinès, fill d'un general.",
+    "El capità que entrena la Mulan disfressada de soldat."]},
+
+  // ---- HÈRCULES ----
+  {name:"Meg", princess:false, emoji:"💔", accepted:["meg","megara"], clues:[
+    "Va fer un tracte amb algú perillós fa temps i encara ho paga.",
+    "Noia independent i irònica que amaga un cor ferit.",
+    "S'enamora d'Hèrcules encara que treballa en secret per a Hades."]},
+  {name:"Hades", princess:false, emoji:"🔥", accepted:["hades"], clues:[
+    "El déu menys content de tot l'Olimp, sempre traçant plans.",
+    "Déu del món dels morts, amb el cap en flames quan s'enfada.",
+    "Vilà blau de Hèrcules que vol enderrocar Zeus."]},
+  {name:"Fil", princess:false, emoji:"🐐", accepted:["fil","phil"], clues:[
+    "Ha entrenat molts herois, però cap n'ha completat mai la formació.",
+    "Sàtir gruny que entrena joves per convertir-se en herois grecs.",
+    "L'entrenador d'Hèrcules, mig home mig cabra."]},
+
+  // ---- TARZAN ----
+  {name:"Jane", princess:false, emoji:"🔬", accepted:["jane"], clues:[
+    "Viatja des de la ciutat fins a la selva per estudiar els goril·les.",
+    "Científica curiosa que s'enamora d'un home criat entre animals.",
+    "S'enamora de Tarzan mentre estudia els goril·les de la selva."]},
+  {name:"Terk", princess:false, emoji:"🦍", accepted:["terk"], clues:[
+    "La millor amiga d'infància d'un noi criat lluny dels humans.",
+    "Goril·la femella, divertida i lleial, amiga de Tarzan.",
+    "Una goril·la que canta i toca música amb els altres primats."]},
+
+  // ---- EL LLIBRE DE LA SELVA ----
+  {name:"Mowgli", princess:false, emoji:"🌿", accepted:["mowgli"], clues:[
+    "Un nen va ser trobat i criat per animals a la selva.",
+    "Nen criat pels llops que ha de decidir on pertany de veritat.",
+    "El 'cadell d'home' que viu aventures amb un ós i una pantera."]},
+  {name:"Bagheera", princess:false, emoji:"🐆", accepted:["bagheera"], clues:[
+    "Vetlla per un nen humà des que el va trobar de nadó.",
+    "Pantera negra prudent que intenta protegir en Mowgli.",
+    "La pantera que porta en Mowgli de tornada al poblat."]},
+  {name:"Kaa", princess:false, emoji:"🐍", accepted:["kaa"], clues:[
+    "Utilitza els seus ulls per hipnotitzar qui se li acosta.",
+    "Serp llarga i astuta que intenta enganyar un nen humà.",
+    "Una serp pitó que hipnotitza en Mowgli amb la mirada."]},
+  {name:"Shere Khan", princess:false, emoji:"🐯", accepted:["shere khan"], clues:[
+    "Els humans li tenen més por que a cap altre animal de la selva.",
+    "Tigre feroç que considera els humans els seus enemics.",
+    "El tigre malvat que persegueix en Mowgli per la selva."]},
+  {name:"Rei Louie", princess:false, emoji:"🦧", accepted:["rei louie","king louie"], clues:[
+    "Vol aconseguir un secret molt humà que un nen coneix.",
+    "Ximpanzé que governa les ruïnes de la selva ballant swing.",
+    "Un orangutan que canta 'vull ser com tu' a en Mowgli."]},
+
+  // ---- WINNIE THE POOH ----
+  {name:"Piglet", princess:false, emoji:"🐷", accepted:["piglet","porquet"], clues:[
+    "El més poruc del grup, però sempre acompanya els seus amics.",
+    "Porquet rosa i tímid, molt amic d'un osset de peluix.",
+    "El millor amic d'en Winnie the Pooh, molt petit i nerviós."]},
+  {name:"Ase", princess:false, emoji:"🫏", accepted:["ase","eeyore"], clues:[
+    "Sempre veu el costat trist de les coses, per petites que siguin.",
+    "Ruc gris i melangiós del Bosc dels Cent Aquers.",
+    "Un ruc gris que sempre perd la cua i està trist."]},
+  {name:"Kanga i Roo", princess:false, emoji:"🦘", accepted:["kanga","roo","kanga i roo"], clues:[
+    "Una mare i un fill van arribar de fora al Bosc dels Cent Aquers.",
+    "Cangur protectora i el seu petit, molt actiu i juganer.",
+    "Una cangur i el seu cadell, amics d'en Winnie the Pooh."]},
+  {name:"Christopher Robin", princess:false, emoji:"🧒", accepted:["christopher robin"], clues:[
+    "L'únic humà que viu aventures amb un grup d'animals de peluix.",
+    "Nen imaginatiu, amic de tots els habitants del Bosc dels Cent Aquers.",
+    "El nen propietari d'en Winnie the Pooh i tots els seus amics."]},
+
+  // ---- PETER PAN ----
+  {name:"Wendy", princess:false, emoji:"🌙", accepted:["wendy"], clues:[
+    "Una nena vola des de casa seva fins a una illa on ningú creix.",
+    "Explica històries als seus germans i acaba vivint-ne una de veritat.",
+    "La nena que vola al País de Mai Més amb en Peter Pan."]},
+  {name:"Campaneta", princess:false, emoji:"🧚‍♀️", accepted:["campaneta","tinker bell"], clues:[
+    "És diminuta, però els seus sentiments són tan grans com els de qualsevol.",
+    "Fada gelosa i lleial, sempre a prop d'un nen que no vol créixer.",
+    "Una fadeta de llum groga que sempre acompanya en Peter Pan."]},
+  {name:"Smee", princess:false, emoji:"⚓", accepted:["smee"], clues:[
+    "L'ajudant més fidel d'un pirata amb un ganxo a la mà.",
+    "Pirata baixet i despistat, sempre al costat del seu capità.",
+    "L'ajudant rodanxó del Capità Garfi."]},
+
+  // ---- ALÍCIA AL PAÍS DE LES MERAVELLES ----
+  {name:"El Barreter Boig", princess:false, emoji:"🎩", accepted:["barreter boig","mad hatter"], clues:[
+    "Celebra festes de no-aniversari amb tota mena de convidats estranys.",
+    "Amfitrió excèntric d'una interminable hora del te.",
+    "Porta un barret enorme i organitza el te de no-aniversari."]},
+  {name:"El Gat de Cheshire", princess:false, emoji:"😸", accepted:["gat de cheshire","cheshire cat"], clues:[
+    "Pot desaparèixer del tot deixant només un somriure enrere.",
+    "Gat misteriós del País de les Meravelles que parla amb endevinalles.",
+    "Un gat ratllat rosa i lila que desapareix i només deixa el somriure."]},
+  {name:"La Reina de Cors", princess:false, emoji:"♥️", accepted:["reina de cors","queen of hearts"], clues:[
+    "A qui la contradiu, li agrada amenaçar-lo amb un càstig molt dràstic.",
+    "Governant colèrica del País de les Meravelles, obsessionada amb el croquet.",
+    "Crida 'que li tallin el cap!' cada vegada que s'enfada."]},
+
+  // ---- PIRATES DEL CARIB ----
+  {name:"Will Turner", princess:false, emoji:"⚔️", accepted:["will turner"], clues:[
+    "Un ferrer descobreix que el seu pare tenia un passat molt diferent.",
+    "Jove ferrer que busca rescatar la dona que estima dels pirates.",
+    "S'alia amb en Jack Sparrow per rescatar l'Elizabeth Swann."]},
+  {name:"Elizabeth Swann", princess:false, emoji:"🏴‍☠️", accepted:["elizabeth swann"], clues:[
+    "La filla d'un governador acaba vivint una vida molt més aventurera.",
+    "Noia valenta que s'acaba convertint en pirata per voluntat pròpia.",
+    "S'enamora d'en Will Turner i navega amb en Jack Sparrow."]},
+
+  // ---- MONSTERS INC ----
+  {name:"Boo", princess:false, emoji:"👧", accepted:["boo"], clues:[
+    "Una nena entra sense voler a un món que hauria de fer-li por.",
+    "Nena petita que no té gens de por dels monstres.",
+    "La nena humana que fa amistat amb en Sully a Monstres SA."]},
+  {name:"Randall", princess:false, emoji:"🦎", accepted:["randall"], clues:[
+    "Es pot fer invisible per espiar sense que ningú se n'adoni.",
+    "Monstre camaleó, rival gelós d'un altre espantador famós.",
+    "Un monstre lila que es pot camuflar i vol robar crits."]},
+
+  // ---- FINDING NEMO / DORY ----
+  {name:"Marlin", princess:false, emoji:"🐠", accepted:["marlin"], clues:[
+    "Travessa tot l'oceà per recuperar algú molt important per a ell.",
+    "Peix pare sobreprotector que busca desesperadament el seu fill.",
+    "El pare d'en Nemo, que el busca per tot el mar."]},
+  {name:"Crush", princess:false, emoji:"🐢", accepted:["crush"], clues:[
+    "Es passa el dia surfejant els corrents de l'oceà sense presses.",
+    "Tortuga marina relaxada que ajuda en Marlin i en Dory.",
+    "Una tortuga verda que fa surf pel corrent australià."]},
+  {name:"Bruce", princess:false, emoji:"🦈", accepted:["bruce"], clues:[
+    "Intenta seguir un grup de suport per canviar els seus hàbits alimentaris.",
+    "Tauró blanc que assegura que els peixos són amics, no menjar.",
+    "Un tauró que forma part d'un grup que promet no menjar peixos."]},
+  {name:"Hank", princess:false, emoji:"🐙", accepted:["hank"], clues:[
+    "Prefereix quedar-se en un lloc tancat i segur en comptes de tornar al mar.",
+    "Pop malhumorat amb set potes que ajuda a trobar algú perdut.",
+    "Un pop taronja que ajuda en Dory a l'institut marí."]},
+
+  // ---- RATATOUILLE ----
+  {name:"Linguini", princess:false, emoji:"👨‍🍳", accepted:["linguini"], clues:[
+    "Un noi sense gaire talent a la cuina rep una ajuda molt inesperada.",
+    "Ajudant de cuina desmanyotat que amaga un petit ajudant sota el barret.",
+    "El noi que cuina amb en Remy amagat sota el seu barret de cuiner."]},
+  {name:"Colette", princess:false, emoji:"🔪", accepted:["colette"], clues:[
+    "L'única dona a la cuina ha hagut de treballar el doble per guanyar-se el respecte.",
+    "Cuinera estricta que ensenya les regles de la cuina a un noi nou.",
+    "La xef que ensenya a en Linguini a treballar a la cuina de París."]},
+
+  // ---- WALL-E ----
+  {name:"EVE", princess:false, emoji:"🤍", accepted:["eve"], clues:[
+    "Va ser enviada des de l'espai amb una missió molt concreta a la Terra.",
+    "Robot blanc i elegant que busca senyals de vida vegetal.",
+    "La robot blanca de qui s'enamora en WALL-E."]},
+
+  // ---- BIG HERO 6 ----
+  {name:"Hiro Hamada", princess:false, emoji:"🤖", accepted:["hiro","hiro hamada"], clues:[
+    "Un noi molt intel·ligent perd algú important i troba consol en un robot.",
+    "Jove geni que crea un equip de superherois amb tecnologia casolana.",
+    "El noi que crea l'equip de superherois amb en Baymax."]},
+  {name:"GoGo Tomago", princess:false, emoji:"🏍️", accepted:["gogo","gogo tomago"], clues:[
+    "Sempre repeteix la mateixa frase quan alguna cosa no li surt bé del tot.",
+    "Membre del grup de superherois, ràpida i directa, amb rodes especials.",
+    "Porta rodes de disc als peus i diu sovint 'dona-hi la volta'."]},
+
+  // ---- ZOOTOPIA ----
+  {name:"Chief Bogo", princess:false, emoji:"🐃", accepted:["chief bogo","cap bogo"], clues:[
+    "No creu que una recluta petita pugui fer la mateixa feina que la resta.",
+    "Cap de policia grandiós que dubta d'una nova agent molt decidida.",
+    "El cap de la policia de Zootròpolis, un búfal molt sever."]},
+  {name:"Flash", princess:false, emoji:"🦥", accepted:["flash"], clues:[
+    "Treballa en un lloc on tothom espera que faci les coses de pressa.",
+    "Empleat de trànsit molt, molt lent, que posa a prova la paciència.",
+    "Una peresa que treballa al departament de vehicles de Zootròpolis."]},
+
+  // ---- ENCANTO ----
+  {name:"Mirabel", princess:false, emoji:"🦋", accepted:["mirabel"], clues:[
+    "És l'única de la seva família que no va rebre un do especial.",
+    "Noia curiosa que descobreix que la seva casa màgica està en perill.",
+    "La protagonista de la família Madrigal, l'única sense poders màgics."]},
+  {name:"Bruno", princess:false, emoji:"🔮", accepted:["bruno","tio bruno"], clues:[
+    "Ningú de la seva família en parla obertament, encara que hi pensen sovint.",
+    "Familiar amb el do de veure el futur, amagat des de fa anys.",
+    "L'oncle de la família Madrigal que veu el futur i viu amagat."]},
+  {name:"Isabela", princess:false, emoji:"🌺", accepted:["isabela"], clues:[
+    "Sempre ha hagut de ser perfecta per complir les expectatives de la família.",
+    "Germana gran amb el do de fer créixer flors allà on va.",
+    "La germana de la Mirabel que fa créixer flors perfectes."]},
+  {name:"Luisa", princess:false, emoji:"💪", accepted:["luisa"], clues:[
+    "Carrega amb un pes que ningú de la família sap que sent per dins.",
+    "Germana amb una força sobrehumana que amaga la seva pressió interior.",
+    "La germana forçuda de la família Madrigal, capaç de moure ponts."]},
+
+  // ---- COCO ----
+  {name:"Miguel", princess:false, emoji:"🎸", accepted:["miguel"], clues:[
+    "A casa seva estan prohibides certes coses que ell estima més que res.",
+    "Noi que somia ser músic tot i que la seva família ho prohibeix.",
+    "El nen que viatja a la Terra dels Morts per la música."]},
+  {name:"Héctor", princess:false, emoji:"💀", accepted:["hector"], clues:[
+    "Ha estat gairebé oblidat i això el posa en perill al món dels morts.",
+    "Esperit simpàtic que ajuda un nen a tornar al món dels vius.",
+    "L'esquelet músic que acompanya en Miguel a la Terra dels Morts."]},
+
+  // ---- MOANA ----
+  {name:"Maui", princess:false, emoji:"🌺", accepted:["maui"], clues:[
+    "Un semidéu va perdre el favor de la gent per un error del passat.",
+    "Semidéu fanfarró amb un ham màgic que canvia de forma.",
+    "El semidéu que ajuda la Vaiana a retornar el cor de Te Fiti."]},
+
+  // ---- BRAVE ----
+  {name:"Rei Fergus", princess:false, emoji:"👑", accepted:["rei fergus","fergus"], clues:[
+    "Va perdre una cama fa anys en un encontre amb un ós enorme.",
+    "Rei escocès bonhomiós, pare d'una arquera molt independent.",
+    "El pare de la Mèrida, un rei escocès amb una cama de fusta."]},
+  {name:"Reina Elinor", princess:false, emoji:"👸", accepted:["reina elinor","elinor"], clues:[
+    "Una discussió amb la seva filla la porta a viure una transformació inesperada.",
+    "Reina elegant que acaba convertida en un animal del bosc.",
+    "La mare de la Mèrida, convertida en ós per un desig mal formulat."]},
+
+  // ---- WRECK-IT RALPH ----
+  {name:"Ralph", princess:false, emoji:"🎮", accepted:["ralph","wreck-it ralph"], clues:[
+    "Cansat de ser sempre el dolent del seu joc, busca demostrar que val més.",
+    "Personatge de videojoc que viatja a altres jocs buscant una medalla.",
+    "El 'trencador' d'un videojoc clàssic que somia ser un heroi."]},
+  {name:"Vanellope", princess:false, emoji:"🍬", accepted:["vanellope"], clues:[
+    "Un error al seu propi joc fa que ningú la vulgui deixar competir.",
+    "Nena corredora amb errors de codi, exclosa de la seva pròpia cursa.",
+    "Corredora de Sucre Trencat que fa amistat amb en Ralph."]},
+
+  // ---- INSIDE OUT ----
+  {name:"Joy", princess:false, emoji:"😊", accepted:["joy","alegria"], clues:[
+    "Intenta portar la batuta de tot el que sent una nena per dins.",
+    "L'emoció que sempre vol que tot vagi bé dins del cap d'una nena.",
+    "L'emoció groga i optimista que dirigeix la ment de la Riley."]},
+  {name:"Tristesa", princess:false, emoji:"😢", accepted:["tristesa","sadness"], clues:[
+    "Ningú l'entén bé al principi, però resulta ser molt necessària.",
+    "L'emoció blava que sembla que sempre fa nosa, fins que no ho és.",
+    "L'emoció blava i lenta que viu dins del cap de la Riley."]},
+
+  // ---- UP ----
+  {name:"Carl Fredricksen", princess:false, emoji:"🎈", accepted:["carl","carl fredricksen"], clues:[
+    "Un home gran decideix complir una promesa molt antiga d'un cop.",
+    "Vidu gruny que enganxa mil globus a la seva casa per volar-hi.",
+    "El vell que fa volar casa seva amb globus fins a Amèrica del Sud."]},
+  {name:"Russell", princess:false, emoji:"🏅", accepted:["russell"], clues:[
+    "Necessita una insígnia més per completar la seva formació d'explorador.",
+    "Nen explorador que s'acaba colant en una aventura amb un home gran.",
+    "El nen explorador que acompanya en Carl a l'Amèrica del Sud."]},
+  {name:"Dug", princess:false, emoji:"🐕", accepted:["dug"], clues:[
+    "Un collar especial li permet dir tot el que li passa pel cap.",
+    "Gos molt lleial que perd la concentració cada cop que veu un esquirol.",
+    "Un gos parlant que crida 'esquirol!' cada dos per tres."]},
+
+  // ---- CARS ----
+  {name:"Llamp McQueen", princess:false, emoji:"🏎️", accepted:["llamp mcqueen","rayo mcqueen","lightning mcqueen"], clues:[
+    "Un cotxe de curses arrogant acaba atrapat en un poble oblidat.",
+    "Cotxe de curses vermell que aprèn el valor de l'amistat en un poble petit.",
+    "El cotxe de curses número 95 que aprèn a Radiator Springs."]},
+  {name:"Mate", princess:false, emoji:"🚛", accepted:["mate","mater"], clues:[
+    "El seu millor amic és un cotxe de curses famós de tot el món.",
+    "Grua rovellada, sincera i divertida, sempre lleial als seus amics.",
+    "La grua marró de Radiator Springs, millor amic d'en Llamp McQueen."]},
+
+  // ---- ELS INCREÏBLES ----
+  {name:"Mr. Increïble", princess:false, emoji:"💪", accepted:["mr increible","senor increible","mr incredible"], clues:[
+    "Un heroi va haver d'amagar els seus poders durant molts anys.",
+    "Superheroi fortíssim que porta una vida secreta en família.",
+    "El superheroi forçut, cap d'una família de superherois amagats."]},
+  {name:"Elastigirl", princess:false, emoji:"🤸‍♀️", accepted:["elastigirl"], clues:[
+    "El seu cos es pot adaptar a qualsevol situació sense trencar-se.",
+    "Superheroïna que pot estirar el seu cos com si fos goma.",
+    "La superheroïna elàstica, mare de la família d'Els Increïbles."]},
+  {name:"Violeta", princess:false, emoji:"💜", accepted:["violeta","violet"], clues:[
+    "Prefereix passar desapercebuda, cosa que se li dona molt bé literalment.",
+    "Adolescent tímida que pot fer-se invisible i crear escuts.",
+    "La filla adolescent d'Els Increïbles, que es fa invisible."]},
+  {name:"Dash", princess:false, emoji:"⚡", accepted:["dash"], clues:[
+    "No li deixen competir en curses per no cridar l'atenció.",
+    "Nen amb superveloc极itat que li costa estar-se quiet.",
+    "El nen superràpid de la família d'Els Increïbles."]},
+  {name:"Frozone", princess:false, emoji:"❄️", accepted:["frozone"], clues:[
+    "El millor amic d'un superheroi fort té el seu propi poder de gel.",
+    "Superheroi que crea gel i neu des de les mans.",
+    "El millor amic d'en Mr. Increïble, que crea gel amb els peus."]},
+
+  // ---- LUCA ----
+  {name:"Luca", princess:false, emoji:"🐠", accepted:["luca"], clues:[
+    "Amaga un gran secret cada cop que surt de l'aigua i s'asseca.",
+    "Es converteix en humà quan surt del mar durant un estiu a Itàlia.",
+    "Un monstre marí que es converteix en noi quan és a terra ferma."]},
+
+  // ---- TURNING RED ----
+  {name:"Mei", princess:false, emoji:"🐼", accepted:["mei"], clues:[
+    "Quan s'emociona massa, li passa alguna cosa molt inesperada al cos.",
+    "Adolescent que es converteix en un animal enorme quan s'altera.",
+    "Es transforma en un panda vermell gegant quan s'emociona."]},
+
+  // ---- WISH ----
+  {name:"Asha", princess:false, emoji:"⭐", accepted:["asha"], clues:[
+    "Treballa a prop d'un rei que guarda tots els desitjos de la gent.",
+    "Noia valenta que demana ajuda a una estrella per canviar el seu regne.",
+    "La protagonista que allibera els desitjos guardats pel Rei Magnífico."]},
+
+  // ---- ROBIN HOOD (Disney) ----
+  {name:"Robin Hood", princess:false, emoji:"🏹", accepted:["robin hood"], clues:[
+    "Roba als rics per repartir-ho entre els qui més ho necessiten.",
+    "Guineu arquera que s'enfronta a un príncep injust.",
+    "Una guineu arquera que lluita contra el Príncep Joan."]},
+
+  // ---- L'ESPASA MÀGICA ----
+  {name:"Merlí", princess:false, emoji:"🧙", accepted:["merli","merlin"], clues:[
+    "Un mag antic decideix educar un noi sense saber que serà rei.",
+    "Bruixot savi i despistat, mestre d'un futur gran monarca.",
+    "El mag que ensenya al jove Art (Wart) a convertir-se en rei."]},
+
+  // ---- 101 DÀLMATES ----
+  {name:"Cruella de Vil", princess:false, emoji:"🖤", accepted:["cruella de vil","cruella"], clues:[
+    "L'obsessiona la moda, sobretot si implica pell d'animal.",
+    "Dona extravagant que vol robar cadells per fer-se un abric.",
+    "Vol capturar 101 gossets dàlmates per la seva pell."]},
+  {name:"Pongo i Perdita", princess:false, emoji:"🐕‍🦺", accepted:["pongo","perdita","pongo i perdita"], clues:[
+    "Dues mascotes ajunten els seus propietaris humans sense voler.",
+    "Parella de gossos dàlmates, pares de molts cadells.",
+    "Els gossos dàlmates protagonistes que salven els seus cadells de la Cruella."]},
+
+  // ---- LILO & STITCH ----
+  {name:"Lilo", princess:false, emoji:"🌺", accepted:["lilo"], clues:[
+    "Adopta una 'mascota' que en realitat ve d'un altre planeta.",
+    "Nena hawaiana solitària que fa amistat amb un ésser molt estrany.",
+    "La nena que adopta l'Stitch pensant que és un gos."]},
+
+  // ---- L'EMPERADOR I LES SEVES BOJERIES ----
+  {name:"Kuzco", princess:false, emoji:"🦙", accepted:["kuzco"], clues:[
+    "Un emperador aprèn a ser millor persona després d'una gran transformació.",
+    "Governant egoista convertit en animal per la seva pròpia conselleira.",
+    "L'emperador convertit en llama per culpa d'una poció d'Yzma."]},
+  {name:"Yzma", princess:false, emoji:"🧪", accepted:["yzma"], clues:[
+    "Una antiga conselleira reial trama venjança després de ser acomiadada.",
+    "Bruixa esprimatxada que crea pocions per desfer-se de l'emperador.",
+    "La malvada exconsellera que converteix Kuzco en llama."]},
+
+  // ---- ATLÀNTIDA ----
+  {name:"Milo Thatch", princess:false, emoji:"🗺️", accepted:["milo","milo thatch"], clues:[
+    "Un jove cartògraf busca proves d'una civilització que ningú creu que existeixi.",
+    "Lingüista aventurer que lidera una expedició a un regne submergit.",
+    "El protagonista que descobreix la ciutat perduda d'Atlàntida."]},
+
+  // ---- LA PRINCESA I EL GRANOT ----
+  {name:"Naveen", princess:false, emoji:"🐸", accepted:["naveen","principe naveen","príncep naveen"], clues:[
+    "Un príncep sense diners es converteix en alguna cosa molt inesperada.",
+    "Príncep encantador convertit en granota per un bruixot malvat.",
+    "El príncep granota que acaba enamorant-se de la Tiana."]},
+  {name:"Dr. Facilier", princess:false, emoji:"🎩", accepted:["dr facilier","doctor facilier"], clues:[
+    "Practica una màgia fosca a canvi de favors molt cars.",
+    "Bruixot de Nova Orleans que fa tractes amb 'amics de l'altre costat'.",
+    "El vilà amb barret de copa que converteix un príncep en granota."]},
+
+  // ---- ONWARD ----
+  {name:"Ian", princess:false, emoji:"🧙‍♂️", accepted:["ian"], clues:[
+    "Un noi tímid intenta reviure per un dia algú que mai va conèixer.",
+    "Elf jove que fa un conjur màgic per veure el seu pare mort.",
+    "L'elf protagonist que viatja amb el seu germà per retrobar el seu pare."]},
+
+  // ---- SOUL ----
+  {name:"Joe Gardner", princess:false, emoji:"🎹", accepted:["joe","joe gardner"], clues:[
+    "Un home descobreix el que de veritat importa just quan podria perdre-ho tot.",
+    "Professor de música que somia tocar jazz professionalment.",
+    "El músic que acaba al Més Enllà i lluita per tornar a la vida."]},
+
+  // ---- ARISTOCATS ----
+  {name:"Duquessa", princess:false, emoji:"🐱", accepted:["duquessa","duchess"], clues:[
+    "Una gata elegant es veu obligada a sobreviure lluny de casa.",
+    "Gata refinada, mare de tres gatets, protagonista d'una aventura per París.",
+    "La gata blanca protagonista dels Aristòcrates, mare d'en Marie."]},
+  {name:"Thomas O'Malley", princess:false, emoji:"🐈", accepted:["thomas o'malley","o'malley"], clues:[
+    "Un gat sense casa ajuda una família a tornar a la seva llar.",
+    "Gat carrer, encantador i despreocupat, que s'enamora d'una gata refinada.",
+    "El gat rodamón que ajuda la Duquessa i els seus gatets a tornar a casa."]},
 ];
 
 /* ============ ESTAT DEL JOC ============ */
@@ -302,6 +1040,7 @@ let state = {
   usedCharacters: new Set(),
   currentOptions: [],
   selectedOption: null,
+  clueLevel: 0, // 0 = pista difícil, 1 = mitjana, 2 = fàcil
 };
 
 /* ============ UTILITATS ============ */
@@ -336,8 +1075,7 @@ const numPlayersInput = document.getElementById("numPlayers");
 const nameFields = document.getElementById("nameFields");
 
 function renderNameFields(){
-  const n = Math.max(2, Math.min(6, parseInt(numPlayersInput.value)||2));
-  numPlayersInput.value = n;
+  const n = parseInt(numPlayersInput.value) || 2;
   nameFields.innerHTML = "";
   const avatars = ["🦄","🐉","🧸","🚀","🎈","🦋"];
   for(let i=0;i<n;i++){
@@ -348,7 +1086,7 @@ function renderNameFields(){
     nameFields.appendChild(row);
   }
 }
-numPlayersInput.addEventListener("input", renderNameFields);
+numPlayersInput.addEventListener("change", renderNameFields);
 renderNameFields();
 
 document.getElementById("btnGoMovies").addEventListener("click", ()=>{
@@ -399,7 +1137,13 @@ const turnBanner = document.getElementById("turnBanner");
 const cardsGrid = document.getElementById("cardsGrid");
 const guessArea = document.getElementById("guessArea");
 const chosenPreview = document.getElementById("chosenPreview");
+const currentClueBox = document.getElementById("currentClueBox");
+const pointsHint = document.getElementById("pointsHint");
 const guessInput = document.getElementById("guessInput");
+const btnNextClue = document.getElementById("btnNextClue");
+
+const CLUE_LEVEL_LABELS = ["Pista difícil 🔴", "Pista mitjana 🟡", "Pista fàcil 🟢"];
+const CLUE_LEVEL_POINTS = [3, 2, 1]; // punts base segons amb quina pista s'encerta
 
 function renderScoreboard(){
   scoreboard.innerHTML = "";
@@ -437,6 +1181,7 @@ function startTurn(){
 
   state.currentOptions = pickRoundCharacters();
   state.selectedOption = null;
+  state.clueLevel = 0;
   guessArea.classList.remove("active");
   guessInput.value = "";
 
@@ -447,18 +1192,57 @@ function startTurn(){
     card.dataset.idx = idx;
     card.innerHTML = `
       <div class="avatar-badge"><span class="emoji-face">${c.emoji}</span></div>
-      <div class="clue">${c.clue}</div>`;
+      <span class="clue-level-tag lvl-0">${CLUE_LEVEL_LABELS[0]}</span>
+      <div class="clue">${c.clues[0]}</div>`;
     card.addEventListener("click", ()=>selectCard(idx));
     cardsGrid.appendChild(card);
   });
 }
 
+function updatePointsHint(character){
+  const basePts = CLUE_LEVEL_POINTS[state.clueLevel];
+  const bonus = character.princess ? 1 : 0;
+  const total = basePts + bonus;
+  pointsHint.innerHTML = character.princess
+    ? `Si l'encertes ara: <b>${basePts} punt${basePts>1?"s":""} + 1 punt de princesa = ${total} punts</b>`
+    : `Si l'encertes ara: <b>${total} punt${total>1?"s":""}</b>`;
+}
+
+function refreshCardClue(idx){
+  const card = document.querySelectorAll(".char-card")[idx];
+  const c = state.currentOptions[idx];
+  card.querySelector(".clue-level-tag").className = `clue-level-tag lvl-${state.clueLevel}`;
+  card.querySelector(".clue-level-tag").textContent = CLUE_LEVEL_LABELS[state.clueLevel];
+  card.querySelector(".clue").textContent = c.clues[state.clueLevel];
+}
+
 function selectCard(idx){
+  if(state.selectedOption !== null) return; // ja hi ha una targeta triada, no es pot canviar
   state.selectedOption = idx;
-  document.querySelectorAll(".char-card").forEach((el,i)=>{ el.classList.toggle("selected", i===idx); });
+  const character = state.currentOptions[idx];
+
+  document.querySelectorAll(".char-card").forEach((el,i)=>{
+    el.classList.toggle("selected", i===idx);
+    if(i!==idx) el.classList.add("locked-out");
+  });
+
   chosenPreview.textContent = `Has triat aquest personatge — escriu qui creus que és!`;
+  currentClueBox.textContent = character.clues[state.clueLevel];
+  updatePointsHint(character);
+  btnNextClue.disabled = (state.clueLevel >= 2);
   guessArea.classList.add("active");
   guessInput.focus();
+}
+
+function nextClue(){
+  if(state.selectedOption === null) return;
+  if(state.clueLevel >= 2) return;
+  state.clueLevel++;
+  const character = state.currentOptions[state.selectedOption];
+  currentClueBox.textContent = character.clues[state.clueLevel];
+  updatePointsHint(character);
+  refreshCardClue(state.selectedOption);
+  btnNextClue.disabled = (state.clueLevel >= 2);
 }
 
 function submitGuess(){
@@ -473,7 +1257,8 @@ function submitGuess(){
   const player = state.players[activePlayerIdx];
 
   if(isCorrect){
-    const pts = character.princess ? 2 : 1;
+    const basePts = CLUE_LEVEL_POINTS[state.clueLevel];
+    const pts = basePts + (character.princess ? 1 : 0);
     player.points += pts;
     state.usedCharacters.add(character.name);
     showFeedback(true, character, pts);
@@ -483,6 +1268,7 @@ function submitGuess(){
 }
 
 document.getElementById("btnSubmitGuess").addEventListener("click", submitGuess);
+document.getElementById("btnNextClue").addEventListener("click", nextClue);
 guessInput.addEventListener("keydown", (e)=>{ if(e.key==="Enter") submitGuess(); });
 
 /* ---- Feedback overlay + confetti ---- */
